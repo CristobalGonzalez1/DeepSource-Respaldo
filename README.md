@@ -3,9 +3,11 @@
 Aplicación Android para administrar proyectos, tareas y horas de trabajo, realizada con **Kotlin, Jetpack Compose y MVVM**.
 
 ## Integrantes
-- Integrante 1: **[completar nombre y apellido]**
-- Integrante 2: **[completar nombre y apellido]**
-- Equipo: **[completar]**
+- Integrante 1: **Cristobal Gonzalez**
+- Integrante 2: **Valentina Saavedra**
+- Integrante 3: **Felipe Galarce**
+- Integrante 4: **Fernando Guajardo**
+- Equipo: **EABMODEL**
 
 ## Funcionalidades
 - Login de demostración, recuperación/solicitud de acceso simuladas e inicio con Google sujeto a configuración externa.
