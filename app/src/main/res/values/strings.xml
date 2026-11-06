@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DeepSource Horas</string>
+    <string name="action_back">Volver</string>
+
+    <string name="field_email">Correo electrónico</string>
+    <string name="field_email_placeholder">nombre@deepsource.com</string>
+    <string name="field_password">Contraseña</string>
+    <string name="field_name">Nombre completo</string>
+    <string name="field_project">Proyecto</string>
+    <string name="cd_show_password">Mostrar contraseña</string>
+    <string name="cd_hide_password">Ocultar contraseña</string>
+
+    <string name="login_tag">ACCESO SEGURO</string>
+    <string name="login_title">Bienvenido de nuevo</string>
+    <string name="login_subtitle">Inicia sesión para continuar en tu espacio de trabajo.</string>
+    <string name="login_remember">Recordar sesión</string>
+    <string name="login_forgot">¿Olvidaste tu contraseña?</string>
+    <string name="login_submit">Iniciar sesión</string>
+    <string name="login_loading">Iniciando sesión...</string>
+    <string name="login_or">O CONTINÚA CON</string>
+    <string name="login_google">Continuar con Google</string>
+    <string name="login_no_account">¿Aún no tienes una cuenta?</string>
+    <string name="login_request_access">Solicitar acceso</string>
+    <string name="login_secure">Conexión cifrada · Tus datos están protegidos</string>
+
+    <string name="error_email_invalid">Ingresa un correo válido, por ejemplo nombre@deepsource.com.</string>
+    <string name="error_password_short">La contraseña debe tener al menos 8 caracteres.</string>
+    <string name="error_required">Este campo es obligatorio.</string>
+    <string name="error_credentials">Correo o contraseña incorrectos. Revisa los datos e inténtalo de nuevo.</string>
+    <string name="error_generic">Algo salió mal. Inténtalo de nuevo en unos minutos.</string>
+    <string name="error_google_not_configured">Falta configurar GOOGLE_WEB_CLIENT_ID en gradle.properties.</string>
+    <string name="error_google_no_account">No hay cuentas de Google disponibles en este dispositivo.</string>
+    <string name="error_google_unknown">No se pudo iniciar sesión con Google. Inténtalo de nuevo.</string>
+
+    <string name="forgot_title">Recuperar contraseña</string>
+    <string name="forgot_subtitle">Te enviaremos un enlace para crear una contraseña nueva.</string>
+    <string name="forgot_submit">Enviar enlace</string>
+    <string name="forgot_sent">Enviamos un enlace de recuperación a %1$s. Revisa también la carpeta de spam.</string>
+
+    <string name="request_title">Solicitar acceso</string>
+    <string name="request_subtitle">Tu jefatura revisará la solicitud y te avisará por correo.</string>
+    <string name="request_submit">Enviar solicitud</string>
+    <string name="request_sent">Solicitud enviada. Te avisaremos a %1$s.</string>
+
+    <string name="home_greeting">Hola, %1$s</string>
+    <string name="home_subtitle">Ya puedes registrar tus horas.</string>
+    <string name="home_active">JORNADA ACTIVA</string>
+    <string name="home_sign_out">Cerrar sesión</string>
+</resources>
