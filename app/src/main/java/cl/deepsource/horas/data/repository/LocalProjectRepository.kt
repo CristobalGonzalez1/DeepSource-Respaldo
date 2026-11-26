@@ -8,6 +8,9 @@ import cl.deepsource.horas.core.nativefeatures.TaskAlarmScheduler
 import cl.deepsource.horas.domain.model.TaskAssignment
 import cl.deepsource.horas.domain.model.WorkflowDefaults
 import cl.deepsource.horas.domain.model.elapsedSeconds
+import cl.deepsource.horas.domain.logic.TimerRules
+import cl.deepsource.horas.domain.logic.RegistrationRules
+import cl.deepsource.horas.domain.logic.ProjectTaskRules
 import cl.deepsource.horas.domain.model.TimeLog
 import cl.deepsource.horas.domain.model.WorkTask
 import cl.deepsource.horas.domain.repository.ProjectRepository
@@ -279,11 +282,7 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
         val task = _activeTask.value ?: return Result.failure(IllegalStateException("No hay una tarea para aplazar"))
         val now = System.currentTimeMillis()
         // Si estaba en pausa, vuelve a correr; si corría, acumula segundos y pausa.
-        val updated = if (task.paused) {
-            task.copy(paused = false, startEpochMs = now)
-        } else {
-            task.copy(paused = true, accumulatedSeconds = task.accumulatedSeconds + ((now - task.startEpochMs) / 1000L).coerceAtLeast(0L))
-        }
+        val updated = TimerRules.togglePause(task, now)
         _activeTask.value = updated
         saveData()
         return Result.success(updated)
@@ -293,12 +292,7 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
     override suspend fun extendActiveTask(minutes: Int): Result<WorkTask> {
         if (minutes !in 1..240) return Result.failure(IllegalArgumentException("Extensión fuera de rango"))
         val task = _activeTask.value ?: return Result.failure(IllegalStateException("No hay tarea activa"))
-        val updated = task.copy(
-            extensionMinutes = task.extensionMinutes + minutes,
-            // En modo demo, el siguiente aviso llega 15 s después del aplazamiento.
-            nextReminderAtSeconds = if (task.demoReminder) task.elapsedSeconds() + 15L
-                                    else (task.estimateMinutes + task.extensionMinutes + minutes) * 60L,
-        )
+        val updated = TimerRules.extend(task, minutes, System.currentTimeMillis())
         _activeTask.value = updated
         saveData()
         return Result.success(updated)
@@ -308,16 +302,16 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
     // Guardar registro llama a este método con la nota del usuario.
     override suspend fun stopActiveTask(note: String): Result<TimeLog?> {
         val task = _activeTask.value ?: return Result.success(null)
-        val elapsedSeconds = task.elapsedSeconds()
+        val elapsedSeconds = TimerRules.elapsedSeconds(task, System.currentTimeMillis())
         // Historial nuevo guarda segundos reales; minutos es la compatibilidad con Home.
-        val durationMinutes = (elapsedSeconds / 60L).coerceAtLeast(1L)
+        val durationMinutes = RegistrationRules.timerMinutes(elapsedSeconds)
 
         val log = TimeLog(
             // ID único para diferenciar proyectos/tareas/registros.
             id = UUID.randomUUID().toString(),
             projectId = task.projectId,
             durationMinutes = durationMinutes,
-            note = note.trim().ifBlank { task.taskName },
+            note = RegistrationRules.noteForTimer(note, task),
             timestampEpochMs = System.currentTimeMillis(),
             durationSeconds = elapsedSeconds,
             taskName = task.taskName,
@@ -337,10 +331,7 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
         projectId: String, durationMinutes: Long, note: String,
         taskName: String, difficulty: String, timestampEpochMs: Long,
     ): Result<TimeLog> {
-        if (durationMinutes !in 1..1439) {
-            return Result.failure(IllegalArgumentException("La duración debe estar entre 1 y 1439 minutos"))
-        }
-        HomeFormValidator.note(note)?.let { problem ->
+        RegistrationRules.validateManual(durationMinutes, note)?.let { problem ->
             return Result.failure(IllegalArgumentException(problem))
         }
         val project = _projects.value.firstOrNull { it.id == projectId }
@@ -416,12 +407,7 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
 
     /** [V5/TAREAS] Tareas iniciales diferenciadas: editar y añadir desde cada proyecto. */
     private fun defaultTasks(project: Project): List<ProjectTask> {
-        val names = when {
-            project.name.contains("portal", true) -> listOf("Diseñar pantallas del portal", "Implementar login OAuth", "Validar formularios", "Pruebas de integración")
-            project.name.contains("qa", true) || project.name.contains("prueba", true) -> listOf("Preparar plan de pruebas", "Crear casos automatizados", "Ejecutar pruebas", "Documentar hallazgos")
-            project.name.contains("mesa", true) || project.name.contains("operacion", true) -> listOf("Revisar incidencias", "Priorizar solicitudes", "Resolver tickets", "Actualizar documentación")
-            else -> listOf("Planificar actividades", "Desarrollar funcionalidad", "Realizar pruebas", "Documentar avance")
-        }
+        val names = ProjectTaskRules.templateNames(project.name)
         return names.mapIndexed { index, name -> ProjectTask(UUID.randomUUID().toString(), project.id, name,
             project.createdAtEpochMs + index, estimateMinutes = 60 + 30 * (index % 4)) }
     }
@@ -431,9 +417,9 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
             return Result.failure(IllegalArgumentException("La duración debe estar entre 1 y 1440 minutos"))
         if (_projects.value.none { it.id == projectId }) return Result.failure(IllegalArgumentException("Proyecto no encontrado"))
         val clean = name.trim()
-        val problem = HomeFormValidator.taskName(clean)
+        val problem = ProjectTaskRules.validate(clean, estimateMinutes)
         if (problem != null) return Result.failure(IllegalArgumentException(problem))
-        if (_projectTasks.value.any { it.projectId == projectId && it.name.equals(clean, true) })
+        if (ProjectTaskRules.alreadyExists(projectId, clean, _projectTasks.value))
             return Result.failure(IllegalArgumentException("La tarea ya existe en este proyecto"))
         val task = ProjectTask(UUID.randomUUID().toString(), projectId, clean, estimateMinutes = estimateMinutes)
         _projectTasks.value = _projectTasks.value + task

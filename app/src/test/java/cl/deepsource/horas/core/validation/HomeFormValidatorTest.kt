@@ -4,40 +4,61 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HomeFormValidatorTest {
- @Test fun projectNames() {
+ private fun projectNames() {
   assertNotNull(HomeFormValidator.projectName(""))
   assertNotNull(HomeFormValidator.projectName("ab"))
   assertNotNull(HomeFormValidator.projectName("a".repeat(61)))
   assertNull(HomeFormValidator.projectName("Portal Cliente AFC"))
  }
- @Test fun descriptions() {
+ private fun descriptions() {
   assertNotNull(HomeFormValidator.description("x".repeat(301)))
   assertNull(HomeFormValidator.description(""))
  }
- @Test fun taskNames() {
+ private fun taskNames() {
   assertNotNull(HomeFormValidator.taskName("x".repeat(81)))
   assertNull(HomeFormValidator.taskName("Tarea"))
  }
- @Test fun selectProject() {
+ private fun selectProject() {
   assertNotNull(HomeFormValidator.selectedProject(""))
   assertNull(HomeFormValidator.selectedProject("p-1"))
  }
- @Test fun hoursRange() {
+ private fun hoursRange() {
   assertNull(HomeFormValidator.validateHours("23"))
   assertNotNull(HomeFormValidator.validateHours("24"))
   assertNotNull(HomeFormValidator.validateHours("texto"))
  }
- @Test fun minuteRange() {
+ private fun minuteRange() {
   assertNull(HomeFormValidator.validateMinutes("59"))
   assertNotNull(HomeFormValidator.validateMinutes("60"))
  }
- @Test fun duration() {
+ private fun duration() {
   assertNotNull(HomeFormValidator.duration("0","0"))
   assertNotNull(HomeFormValidator.duration("25","0"))
   assertNull(HomeFormValidator.duration("1","30"))
  }
- @Test fun notes() {
+ private fun notes() {
   assertNotNull(HomeFormValidator.note("x".repeat(301)))
   assertNull(HomeFormValidator.note("bien"))
  }
+
+    // Cada escenario reúne casos relacionados, sin quitar validaciones.
+    @Test fun scenario1() {
+        projectNames()
+        descriptions()
+    }
+
+    @Test fun scenario2() {
+        taskNames()
+        selectProject()
+    }
+
+    @Test fun scenario3() {
+        hoursRange()
+        minuteRange()
+    }
+
+    @Test fun scenario4() {
+        duration()
+        notes()
+    }
 }

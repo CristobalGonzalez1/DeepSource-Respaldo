@@ -193,23 +193,23 @@ class WorkflowViewModel(
     }
 
     // Guardar registro: añade el resumen al TimeLog y deja el cronómetro inactivo.
-    fun saveFinished(onSuccess: () -> Unit) {
+    fun saveFinished(onSuccess: (String) -> Unit) {
         val note = form.value.note.trim()
-        if (note.length !in 4..300) { message.value = "La descripción debe tener entre 4 y 300 caracteres"; return }
+        if (note.length > 300) { message.value = "La descripción puede tener hasta 300 caracteres"; return }
         viewModelScope.launch {
             repository.stopActiveTask(note).onSuccess { log ->
                 if (log != null) {
                     lastSavedId.value = log.id
                     preview.value = null
                     notifications.post("Tarea finalizada", "Tiempo registrado: ${log.durationMinutes} min")
-                    onSuccess()
+                    onSuccess(log.id)
                 }
             }.onFailure { message.value = it.message }
         }
     }
 
     // Guardar manual: valida fecha y duración, sin pasar por un cronómetro.
-    fun saveManual(onSuccess: () -> Unit) {
+    fun saveManual(onSuccess: (String) -> Unit) {
         val state = uiState.value
         val f = state.form
         val project = state.projects.firstOrNull { it.id == f.manualProjectId }
@@ -220,7 +220,7 @@ class WorkflowViewModel(
         if (hours == null || minutes == null || hours !in 0..23 || minutes !in 0..59 || duration !in 1..1439) {
             message.value = "Ingresa una duración válida entre 1 minuto y 23 h 59 min"; return
         }
-        if (f.manualNote.trim().length !in 4..300) { message.value = "La descripción debe tener entre 4 y 300 caracteres"; return }
+        if (f.manualNote.trim().length > 300) { message.value = "La descripción puede tener hasta 300 caracteres"; return }
         val parsed = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(f.manualDate) } catch (_: Exception) { null }
         if (parsed == null || parsed.time > System.currentTimeMillis()) { message.value = "Selecciona una fecha válida que no sea futura"; return }
         val allowed = repository.projectTasks.value.filter { it.projectId == project.id }.map { it.name }
@@ -229,7 +229,7 @@ class WorkflowViewModel(
         viewModelScope.launch {
             repository.logHours(project.id, duration, f.manualNote.trim(), chosenTask,
                 "Programada", parsed.time)
-                .onSuccess { log -> lastSavedId.value = log.id; onSuccess() }
+                .onSuccess { log -> lastSavedId.value = log.id; form.value = form.value.copy(manualNote = "", manualHours = "1", manualMinutes = "0"); onSuccess(log.id) }
                 .onFailure { message.value = it.message ?: "No se pudo guardar" }
         }
     }

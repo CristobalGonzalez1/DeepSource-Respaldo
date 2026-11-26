@@ -4,6 +4,7 @@
 
     <!-- [GUIA/DETALLE] La app se comunica con los servicios propios de proyectos y tareas. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- [GUIA/DETALLE] Permiso requerido para publicar avisos en Android 13 o posterior. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />

@@ -36,4 +36,4 @@ data class TaskAssignment(
 
 /** [FLUJO/UTIL] Un único cálculo sirve tanto a la pantalla como al widget. */
 fun WorkTask.elapsedSeconds(now: Long = System.currentTimeMillis()): Long =
-    accumulatedSeconds + if (paused) 0L else ((now - startEpochMs) / 1000L).coerceAtLeast(0L)
+    cl.deepsource.horas.domain.logic.TimerRules.elapsedSeconds(this, now)

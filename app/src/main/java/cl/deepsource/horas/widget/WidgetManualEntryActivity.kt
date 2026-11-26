@@ -99,8 +99,8 @@ class WidgetManualEntryActivity : ComponentActivity() {
                         hours.error = if (h == null || h !in 0..23) "Entre 0 y 23 horas" else null
                         minutes.error = if (m == null || m !in 0..59) "Entre 0 y 59 minutos; el total debe ser mayor a cero" else null
                     }
-                    description.length !in 4..300 -> {
-                        note.error = "Escribe una descripción de entre 4 y 300 caracteres"
+                    description.length > 300 -> {
+                        note.error = "La descripción es opcional (máximo 300 caracteres)"
                     }
                     calendar.timeInMillis > System.currentTimeMillis() -> {
                         dateLabel.error = "Selecciona una fecha válida que no sea futura"

@@ -284,52 +284,11 @@ fun HomeScreen(
                 // Se eliminó el bloque duplicado "Herramientas de tiempo y equipo".
                 // Historial y Perfil están disponibles en la barra inferior; administración solo desde Perfil con rol ADMIN.
 
-                // Tarjeta plegable: ocupa una sola fila hasta que el usuario la abre.
-                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
-                    Column(Modifier.fillMaxWidth().padding(14.dp).animateContentSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Alterna entre desplegar/plegar. No borra archivos ni altera el ViewModel.
-                        OutlinedButton(onClick = { evidenceExpanded = !evidenceExpanded },
-                            modifier = Modifier.fillMaxWidth()) {
-                            Text(if (evidenceExpanded) "⌃  Ocultar archivos y fotos" else "⌄  Adjuntar archivos o fotos")
-                        }
-                        AnimatedVisibility(visible = evidenceExpanded, enter = fadeIn(), exit = fadeOut()) {
-                            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                                Text("Evidencias del proyecto", style = MaterialTheme.typography.titleMedium)
-                                Text("Puedes tomar una fotografía o importar un archivo desde tu teléfono.",
-                                    style = MaterialTheme.typography.bodySmall)
-                                // Abre explorador de documentos, copia el archivo al espacio privado.
-                                OutlinedButton(onClick = onPickAttachment,
-                                    enabled = uiState.currentProject != null, modifier = Modifier.fillMaxWidth()) {
-                                    Text("📎 Subir archivo o imagen")
-                                }
-                                // Cámara antigua conservada: guarda la foto JPEG del proyecto.
-                                OutlinedButton(onClick = onCapturePhoto,
-                                    enabled = uiState.currentProject != null, modifier = Modifier.fillMaxWidth()) {
-                                    Text("📷 Tomar fotografía")
-                                }
-                                if (attachmentName != null) {
-                                    Text("Último archivo: $attachmentName", style = MaterialTheme.typography.bodySmall)
-                                    TextButton(onClick = onOpenAttachment) { Text("Abrir archivo adjunto") }
-                                }
-                                // Previsualización de la fotografía obtenida con cámara.
-                                AnimatedVisibility(visible = photoPath != null, enter = fadeIn(), exit = fadeOut()) {
-                                    val imageBitmap = androidx.compose.runtime.remember(photoPath, photoRevision) {
-                                        photoPath?.let { BitmapFactory.decodeFile(it)?.asImageBitmap() }
-                                    }
-                                    if (imageBitmap != null) Image(
-                                        bitmap = imageBitmap,
-                                        contentDescription = "Última fotografía del proyecto",
-                                        modifier = Modifier.fillMaxWidth().height(150.dp),
-                                        contentScale = ContentScale.Fit,
-                                    )
-                                }
-                                if (!notificationsEnabled) {
-                                    OutlinedButton(onClick = onEnableNotifications,
-                                        modifier = Modifier.fillMaxWidth()) { Text("Activar notificaciones") }
-                                } else Text("✓ Avisos habilitados", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
+                // Las evidencias ahora se adjuntan a cada registro de horas.
+                // Mantenemos el acceso a notificaciones desde Inicio.
+                if (!notificationsEnabled) {
+                    OutlinedButton(onClick = onEnableNotifications, modifier = Modifier.fillMaxWidth()) {
+                        Text("Activar notificaciones")
                     }
                 }
 

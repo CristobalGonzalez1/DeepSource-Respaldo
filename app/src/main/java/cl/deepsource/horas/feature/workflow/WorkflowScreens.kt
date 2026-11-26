@@ -2,6 +2,8 @@ package cl.deepsource.horas.feature.workflow
 
 import android.Manifest
 import android.app.DatePickerDialog
+import android.graphics.Bitmap
+import cl.deepsource.horas.core.nativefeatures.RecordEvidenceStore
 import android.app.AlarmManager
 import android.content.Intent
 import android.net.Uri
@@ -428,6 +430,56 @@ private fun AlertPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) ->
         color = DsTextMuted, fontSize = 11.sp)
 }
 
+// El archivo se selecciona desde Android. Una foto solicita permiso de cámara al usarla.
+// El documento se elige con el explorador del sistema, sin solicitar acceso a todo el almacenamiento.
+@Composable
+private fun RecordEvidencePicker(register: ((String) -> Unit) -> Unit) {
+    val context = LocalContext.current
+    val store = remember(context) { RecordEvidenceStore(context) }
+    var picture by remember { mutableStateOf<Bitmap?>(null) }
+    var document by remember { mutableStateOf<Uri?>(null) }
+    var label by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) { picture = bitmap; document = null; label = "Fotografía preparada"; error = null }
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) camera.launch(null) else error = "Autoriza el acceso a la cámara para tomar una foto"
+    }
+    val documents = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) { document = uri; picture = null; label = "Archivo seleccionado"; error = null }
+    }
+    register { recordId ->
+        val successful = when {
+            picture != null -> store.savePhoto(recordId, picture!!)
+            document != null -> store.saveDocument(recordId, document!!)
+            else -> true
+        }
+        if (!successful) {
+            Toast.makeText(context, "Se guardó el registro, pero no se pudo adjuntar la evidencia", Toast.LENGTH_LONG).show()
+        }
+        picture = null; document = null; label = null; error = null
+    }
+    Panel {
+        Text("Evidencia (opcional)", color = DsTextPrimary, fontWeight = FontWeight.SemiBold)
+        Text("Adjunta una foto o un documento a este registro de horas.", color = DsTextMuted, fontSize = 12.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+                    camera.launch(null)
+                else permission.launch(Manifest.permission.CAMERA)
+            }, modifier = Modifier.weight(1f)) { Text("📷 Cámara") }
+            OutlinedButton(onClick = { documents.launch(arrayOf("image/*", "application/pdf", "text/*", "application/*")) },
+                modifier = Modifier.weight(1f)) { Text("📎 Archivo") }
+        }
+        if (label != null) {
+            Text(label!!, color = DsSuccess, fontSize = 12.sp)
+            TextButton(onClick = { picture = null; document = null; label = null }) { Text("Quitar selección") }
+        }
+        if (error != null) Text(error!!, color = Color(0xFFFF627A), fontSize = 12.sp)
+    }
+}
+
 // Confirmación antes de persistir: calcula diferencia estimado - real.
 @Composable
 private fun FinishPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
@@ -440,11 +492,15 @@ private fun FinishPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -
         KeyValue("Real", clock(preview.seconds), DsSuccess)
         KeyValue("Diferencia", difference(preview.seconds - preview.task.estimateMinutes * 60L))
     }
-    MiniLabel("¿Qué realizaste?")
+    val evidenceSaver = remember { arrayOf<(String) -> Unit>({}) }
+    MiniLabel("¿Qué realizaste? (opcional)")
     OutlinedTextField(value = s.form.note, onValueChange = { vm.edit { f -> f.copy(note = it) } },
-        modifier = Modifier.fillMaxWidth(), minLines = 3, label = { Text("Resumen de trabajo") })
+        modifier = Modifier.fillMaxWidth(), minLines = 3, label = { Text("Resumen de trabajo (opcional)") },
+        isError = s.form.note.length > 300,
+        supportingText = { if (s.form.note.length > 300) Text("Máximo 300 caracteres") })
+    RecordEvidencePicker { evidenceSaver[0] = it }
     // Solo aquí termina el registro de forma definitiva.
-    DsPrimaryButton("Guardar registro", { vm.saveFinished { go(Routes.SAVED) } })
+    DsPrimaryButton("Guardar registro", { vm.saveFinished { id -> evidenceSaver[0](id); go(Routes.SAVED) } })
     TextButton(onClick = { go(Routes.RUNNING) }) { Text("Volver al cronómetro (en pausa)") }
 }
 
@@ -461,6 +517,10 @@ private fun SavedPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) ->
         KeyValue("Estimado", compact(record.estimateMinutes * 60L))
         KeyValue("Diferencia", difference(record.durationSeconds - record.estimateMinutes * 60L))
         if (record.note.isNotBlank()) Text(record.note, color = DsTextMuted, fontSize = 12.sp)
+        val context = LocalContext.current
+        val evidenceStore = remember(context) { RecordEvidenceStore(context) }
+        val attached = evidenceStore.get(record.id)
+        if (attached != null) TextButton(onClick = { evidenceStore.open(record.id) }) { Text("📎 ${attached.name}") }
     }
     DsPrimaryButton("Ver detalle de proyecto", onClick = {
         record?.projectId?.let(vm::selectDetail)
@@ -518,6 +578,8 @@ private fun DetailPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -
 // Las horas están agrupadas por proyecto para que puedas revisar su detalle sin saturar la pantalla.
 @Composable
 private fun HistoryPage(s: WorkflowUiState, go: (String) -> Unit) {
+    val context = LocalContext.current
+    val evidenceStore = remember(context) { RecordEvidenceStore(context) }
     Heading("Historial", "Revisa tus horas por proyecto")
     Panel {
         KeyValue("Registros", "${s.logs.size}")
@@ -547,6 +609,8 @@ private fun HistoryPage(s: WorkflowUiState, go: (String) -> Unit) {
                             Text("${date(entry.timestampEpochMs)} · ${if (entry.source == "manual") "Registro manual" else "Cronómetro"}",
                                 color = DsTextMuted, fontSize = 11.sp)
                             if (entry.note.isNotBlank()) Text(entry.note, color = DsTextMuted, fontSize = 12.sp)
+                            val attachment = evidenceStore.get(entry.id)
+                            if (attachment != null) TextButton(onClick = { evidenceStore.open(entry.id) }) { Text("📎 ${attachment.name}") }
                         }
                     }
                 }
@@ -609,18 +673,20 @@ private fun ManualPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -
             supportingText = { if (minuteError) Text("Entre 0 y 59; total mayor a cero") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
     }
-    val noteError = attempted && f.manualNote.trim().length !in 4..300
+    val noteError = attempted && f.manualNote.length > 300
     OutlinedTextField(value = f.manualNote, onValueChange = { value -> vm.edit { it.copy(manualNote = value) } },
-        modifier = Modifier.fillMaxWidth(), minLines = 2, label = { Text("¿Qué trabajo realizaste?") },
+        modifier = Modifier.fillMaxWidth(), minLines = 2, label = { Text("¿Qué trabajo realizaste? (opcional)") },
         isError = noteError,
-        supportingText = { if (noteError) Text("Describe tu trabajo usando entre 4 y 300 caracteres") })
+        supportingText = { if (noteError) Text("La descripción puede tener hasta 300 caracteres") })
+    val evidenceSaver = remember { arrayOf<(String) -> Unit>({}) }
+    RecordEvidencePicker { evidenceSaver[0] = it }
     DsPrimaryButton("Guardar horas", {
         attempted = true
         if (manualProject != null && manualTasks.isNotEmpty() && !dateError &&
             hours != null && hours in 0..23 && minutes != null && minutes in 0..59 &&
-            hours * 60 + minutes > 0 && f.manualNote.trim().length in 4..300 &&
+            hours * 60 + minutes > 0 && f.manualNote.length <= 300 &&
             parsedDate != null && parsedDate.time <= System.currentTimeMillis()) {
-            vm.saveManual { go(Routes.SAVED) }
+            vm.saveManual { id -> evidenceSaver[0](id); go(Routes.SAVED) }
         }
     }, enabled = s.projects.isNotEmpty())
 }

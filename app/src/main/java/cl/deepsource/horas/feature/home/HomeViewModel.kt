@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import cl.deepsource.horas.appContainer
 import cl.deepsource.horas.core.validation.HomeFormValidator
+import cl.deepsource.horas.domain.logic.RegistrationRules
+import cl.deepsource.horas.domain.logic.TimerRules
 import cl.deepsource.horas.core.nativefeatures.TaskNotifications
 import cl.deepsource.horas.domain.model.ProjectWithStats
 import cl.deepsource.horas.domain.repository.ProjectRepository
@@ -72,12 +74,12 @@ class HomeViewModel(
 
         // Tiempo activo = tiempo acumulado + segmento desde startEpochMs si no está en pausa.
         val activeElapsedSec = if (activeTask != null) {
-            activeTask.accumulatedSeconds + if (activeTask.paused) 0L else ((nowMs - activeTask.startEpochMs) / 1000L).coerceAtLeast(0L)
+            TimerRules.elapsedSeconds(activeTask, nowMs)
         } else 0L
 
         // Para cada proyecto suma los minutos registrados en su historial.
         val projectsWithStats = snapshot.projects.map { proj ->
-            val totalMins = snapshot.logs.filter { it.projectId == proj.id }.sumOf { it.durationMinutes }
+            val totalMins = RegistrationRules.projectMinutes(proj.id, snapshot.logs)
             ProjectWithStats(
                 project = proj,
                 totalLoggedMinutes = totalMins,
@@ -90,8 +92,7 @@ class HomeViewModel(
         val currentProj = snapshot.currentProj
         // Suma TimeLog solo del proyecto actual desde inicio de semana.
         val weeklyMinsForCurrent = if (currentProj != null) {
-            snapshot.logs.filter { it.projectId == currentProj.id && it.timestampEpochMs >= startOfWeekMs }
-                .sumOf { it.durationMinutes }
+            RegistrationRules.weeklyMinutes(currentProj.id, startOfWeekMs, snapshot.logs)
         } else 0L
 
         val uName = snapshot.user?.name.orEmpty().ifBlank { "Marina Soto" }
