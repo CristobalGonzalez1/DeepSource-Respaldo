@@ -251,13 +251,11 @@ Los resultados de sus pruebas e informes JaCoCo pertenecen al backend; no sustit
 
 | Integrante | Responsabilidad / aporte verificable | GitHub |
 |---|---|---|
-| `[Nombre 1]` | `[Aporte real]` | `[@usuario1]` |
-| `[Nombre 2]` | `[Aporte real]` | `[@usuario2]` |
-| `[Nombre 3]` | `[Aporte real]` | `[@usuario3]` |
-| `[Nombre 4]` | `[Aporte real]` | `[@usuario4]` |
+| `Felipe Galarce` | `Diseño e Ideas(fincuonalidades) y registro de archivos base` | `Feli.Galarce@duocuc.cl` |
+| `Valentina Saavedra` | `Testing con pruebas unitariasa y cobertura` | `Valen.Saavedrac@duocuc.cl` |
+| `Fernando Guajardo` | `Comprobacion de funciones y ordenamiento de proyecto` | `fe.giajardog@duocuc.cl` |
+| `Cristobal Gonzalez` | `Desarrollo de microservicios Spring junto con implementacion de API` | `cri.gonzalez5@duocuc.cl` |
 
-Completar con los nombres, usuarios y aportes reales. Cada integrante debe autorizar sus propios commits con el nombre/correo correcto y publicar solamente cambios que efectivamente realizó.
 
 ---
 
-**Estado de referencia:** código V15 revisado y resultados JaCoCo aportados por el equipo. Este README describe funciones y pruebas verificables, **no certifica por sí solo que se haya completado toda la EV4**.
