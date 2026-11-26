@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- [GUIA/ARCHIVO] Declaración Android de permisos, Application, Activity principal y receptor del widget. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- [GUIA/DETALLE] Permiso de red; en esta app proyectos y login demo no llaman a una API remota. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- [GUIA/DETALLE] Permiso requerido para publicar avisos en Android 13 o posterior. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- [GUIA/DETALLE] La cámara es opcional: se usa TakePicturePreview en HomeRoute. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- [GUIA/DETALLE] Punto de configuración de DeepSourceApp: Android inicializa AppContainer allí. -->
     <application
         android:name=".DeepSourceApp"
         android:allowBackup="true"
@@ -12,19 +19,39 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.DeepSourceHoras">
+        <!-- [GUIA/DETALLE] MainActivity es la pantalla de entrada que monta Navigation Compose. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
+            <!-- [GUIA/DETALLE] Filtro de eventos Android que puede lanzar Activity o actualizar widget. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- [V5/ALARMA] Receptor que puede notificar con la Activity cerrada. -->
+        <receiver android:name=".core.nativefeatures.TaskDeadlineReceiver" android:exported="false" />
+        <receiver android:name=".core.nativefeatures.TaskBootReceiver" android:enabled="true" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter>
+        </receiver>
+
+        <!-- [V4/ARCHIVOS] Abre adjuntos mediante content:// temporal, sin exponer archivos privados. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.evidenceprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/project_evidence_paths" />
+        </provider>
+
+        <!-- [GUIA/DETALLE] Declara DeepSourceAppWidget para escuchar actualizaciones del sistema. -->
         <receiver
             android:name=".widget.DeepSourceAppWidget"
             android:exported="true">
+            <!-- [GUIA/DETALLE] Filtro de eventos Android que puede lanzar Activity o actualizar widget. -->
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

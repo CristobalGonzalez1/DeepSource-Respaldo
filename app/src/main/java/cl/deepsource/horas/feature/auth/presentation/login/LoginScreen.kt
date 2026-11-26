@@ -1,4 +1,7 @@
 package cl.deepsource.horas.feature.auth.presentation.login
+// [GUIA/ARCHIVO] Presentación de Login; LoginRoute conecta al ViewModel y navegación.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/auth/presentation/login/LoginScreen.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -47,17 +50,21 @@ import kotlinx.coroutines.launch
 
 
 @Composable
+// [GUIA/FUNCION] LoginRoute: Conecta LoginViewModel con Compose, recibe evento LoggedIn y ejecuta navegación.
 fun LoginRoute(
     onLoggedIn: () -> Unit,
     onForgotPassword: () -> Unit,
     onRequestAccess: () -> Unit,
     viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory),
 ) {
+    // [GUIA/DETALLE] Compose se repinta automáticamente cuando LoginViewModel cambia su StateFlow.
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // [GUIA/DETALLE] Obtiene cliente nativo Google desde AppContainer; remember evita recrearlo innecesariamente.
     val googleClient = remember(context) { context.appContainer().googleAuthClient }
 
+    // [GUIA/DETALLE] Escucha evento de login exitoso y llama onLoggedIn: la navegación no vive en el ViewModel.
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -66,16 +73,25 @@ fun LoginRoute(
         }
     }
 
+    // [GUIA/DETALLE] La función de dibujo recibe estado y callbacks; no contiene autenticación real.
     LoginScreen(
         state = state,
+        // [GUIA/DETALLE] Al escribir el email llama a LoginViewModel.onEmailChange.
         onEmailChange = viewModel::onEmailChange,
+        // [GUIA/DETALLE] Al escribir la contraseña llama a LoginViewModel.onPasswordChange.
         onPasswordChange = viewModel::onPasswordChange,
+        // [GUIA/DETALLE] El icono del ojo cambia el estado de visibilidad de la clave.
         onTogglePasswordVisibility = viewModel::onTogglePasswordVisibility,
+        // [GUIA/DETALLE] Checkbox Guardar sesión; solo cambia el estado local de esta demo.
         onRememberChange = viewModel::onRememberChange,
+        // [GUIA/DETALLE] El botón Iniciar sesión inicia validación y autenticación en LoginViewModel.
         onSubmit = viewModel::onSubmit,
+        // [GUIA/DETALLE] El botón Continuar con Google abre Credential Manager en una corrutina.
         onGoogleClick = {
             scope.launch {
+                // [GUIA/DETALLE] Muestra spinner y deshabilita botones mientras se elige cuenta.
                 viewModel.onGoogleStarted()
+                // [GUIA/DETALLE] Entrega resultado a LoginViewModel para iniciar sesión o mostrar error.
                 viewModel.onGoogleResult(googleClient.signIn(context))
             }
         },
@@ -86,6 +102,8 @@ fun LoginRoute(
 
 /** Pantalla sin estado propio: fácil de previsualizar y probar. */
 @Composable
+// [GUIA/FUNCION] LoginScreen: Dibuja campos, validaciones y botones; delega acciones mediante callbacks al Route/ViewModel.
+// [GUIA/DETALLE] La función de dibujo recibe estado y callbacks; no contiene autenticación real.
 fun LoginScreen(
     state: LoginUiState,
     onEmailChange: (String) -> Unit,
@@ -97,6 +115,7 @@ fun LoginScreen(
     onForgotPassword: () -> Unit,
     onRequestAccess: () -> Unit,
 ) {
+    // [GUIA/DETALLE] Usa el fondo degradado común de toda la aplicación.
     DsScreenBackground {
         Column(
             modifier = Modifier
@@ -123,8 +142,10 @@ fun LoginScreen(
                 border = BorderStroke(1.dp, DsOutline),
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // [GUIA/DETALLE] Campo personalizado: su valor viene del estado y sus cambios salen por un callback.
                     DsTextField(
                         value = state.email,
+                        // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; delega en onEmailChange.
                         onValueChange = onEmailChange,
                         label = stringResource(R.string.field_email),
                         placeholder = stringResource(R.string.field_email_placeholder),
@@ -133,8 +154,10 @@ fun LoginScreen(
                         enabled = !state.isBusy,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                     )
+                    // [GUIA/DETALLE] Campo personalizado: su valor viene del estado y sus cambios salen por un callback.
                     DsTextField(
                         value = state.password,
+                        // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; delega en onPasswordChange.
                         onValueChange = onPasswordChange,
                         label = stringResource(R.string.field_password),
                         leadingIcon = Icons.Outlined.Lock,
@@ -142,8 +165,10 @@ fun LoginScreen(
                         enabled = !state.isBusy,
                         visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        // [GUIA/DETALLE] La tecla Listo del teclado ejecuta lo mismo que Iniciar sesión.
                         keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                         trailingIcon = {
+                            // [GUIA/DETALLE] Botón del ojo: cambia entre texto plano y contraseña oculta.
                             IconButton(onClick = onTogglePasswordVisibility) {
                                 Icon(
                                     imageVector = if (state.passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
@@ -161,11 +186,13 @@ fun LoginScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(
+                            // [GUIA/DETALLE] Toque de la etiqueta/área de la casilla Recordar sesión.
                             modifier = Modifier.clickable { onRememberChange(!state.rememberSession) },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Checkbox(
                                 checked = state.rememberSession,
+                                // [GUIA/DETALLE] El Checkbox activa/desactiva la preferencia en ViewModel.
                                 onCheckedChange = onRememberChange,
                                 colors = CheckboxDefaults.colors(
                                     checkedColor = DsCyan,
@@ -175,6 +202,7 @@ fun LoginScreen(
                             Text(stringResource(R.string.login_remember), style = MaterialTheme.typography.bodyMedium)
                         }
                         TextButton(
+                            // [GUIA/DETALLE] Botón ¿Olvidaste tu contraseña?: abre la ruta FORGOT_PASSWORD.
                             onClick = onForgotPassword,
                             contentPadding = PaddingValues(horizontal = 4.dp),
                         ) {
@@ -187,6 +215,7 @@ fun LoginScreen(
                         }
                     }
 
+                    // [GUIA/DETALLE] Solo presenta el recuadro de error si el ViewModel ha informado uno.
                     state.generalError?.let {
                         Surface(
                             shape = MaterialTheme.shapes.medium,
@@ -211,6 +240,7 @@ fun LoginScreen(
 
                     DsPrimaryButton(
                         text = stringResource(R.string.login_submit),
+                        // [GUIA/DETALLE] Botón Iniciar sesión: dispara LoginViewModel.onSubmit.
                         onClick = onSubmit,
                         loading = state.isLoading,
                         loadingText = stringResource(R.string.login_loading),
@@ -230,6 +260,7 @@ fun LoginScreen(
 
                     GoogleSignInButton(
                         text = stringResource(R.string.login_google),
+                        // [GUIA/DETALLE] Botón Google: invoca el flujo nativo de cuenta Google.
                         onClick = onGoogleClick,
                         loading = state.isGoogleLoading,
                     )
@@ -239,6 +270,7 @@ fun LoginScreen(
             Spacer(Modifier.height(32.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.login_no_account), style = MaterialTheme.typography.bodyMedium, color = DsTextMuted)
+                // [GUIA/DETALLE] Botón Solicitar acceso: navega a REQUEST_ACCESS.
                 TextButton(onClick = onRequestAccess) {
                     Text(stringResource(R.string.login_request_access), color = DsCyan)
                 }
@@ -259,11 +291,14 @@ fun LoginScreen(
 
 @Preview(showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
+// [GUIA/FUNCION] LoginScreenPreview: Previsualización de diseño en Android Studio; no usa servicios reales.
 private fun LoginScreenPreview() {
     DeepSourceTheme {
+        // [GUIA/DETALLE] La función de dibujo recibe estado y callbacks; no contiene autenticación real.
         LoginScreen(
             state = LoginUiState(email = "demo@deepsource.cl"),
             onEmailChange = {}, onPasswordChange = {}, onTogglePasswordVisibility = {},
+            // [GUIA/DETALLE] El botón Continuar con Google abre Credential Manager en una corrutina.
             onRememberChange = {}, onSubmit = {}, onGoogleClick = {},
             onForgotPassword = {}, onRequestAccess = {},
         )

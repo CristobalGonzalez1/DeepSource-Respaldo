@@ -1,69 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- [V4/WIDGET] Layout compacto Android RemoteViews: proyecto, dificultad, cronómetro y acciones. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_widget"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="12dp">
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal">
         <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="DeepSourcE Horas"
-            android:textColor="#0FB9C9"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="DeepSource" android:textColor="#22D3EE"
+            android:textSize="14sp" android:textStyle="bold" />
         <TextView
             android:id="@+id/tv_widget_badge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#1F0FB9C9"
-            android:paddingLeft="8dp"
-            android:paddingTop="3dp"
-            android:paddingRight="8dp"
-            android:paddingBottom="3dp"
-            android:text="⭐ SIN LÍMITES"
-            android:textColor="#0FB9C9"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="● DISPONIBLE" android:textColor="#34D399"
+            android:textSize="10sp" android:textStyle="bold" />
     </LinearLayout>
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="#1A2234" />
+    <!-- [V4/PROYECTO] Nombre legible; botón Cambiar recorre proyectos guardados. -->
+    <LinearLayout android:id="@+id/widget_project_row"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="PROYECTO" android:textColor="#A29CCB" android:textSize="9sp" />
+            <TextView
+                android:id="@+id/tv_widget_project_name"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:ellipsize="end" android:maxLines="1" android:text="Proyecto"
+                android:textColor="#F2F5FF" android:textSize="12sp" android:textStyle="bold" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_action_project_change"
+            android:layout_width="wrap_content" android:layout_height="34dp"
+            android:background="@drawable/bg_widget_selector"
+            android:gravity="center" android:paddingStart="11dp" android:paddingEnd="11dp"
+            android:text="Cambiar ›" android:textColor="#DDD8FF" android:textSize="11sp" />
+    </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_widget_project_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="Proyecto: Sin seleccionar"
-        android:textColor="#FFFFFF"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+    <!-- [V4/DIFICULTAD] Normal/Media/Compleja y minutos son seleccionables antes de iniciar. -->
+    <LinearLayout android:id="@+id/widget_difficulty_row"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="DIFICULTAD" android:textColor="#A29CCB" android:textSize="9sp" />
+            <TextView
+                android:id="@+id/tv_widget_difficulty"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Normal · 90 min" android:textColor="#F2F5FF"
+                android:textSize="12sp" android:textStyle="bold" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_action_difficulty_change"
+            android:layout_width="wrap_content" android:layout_height="34dp"
+            android:background="@drawable/bg_widget_selector"
+            android:gravity="center" android:paddingStart="11dp" android:paddingEnd="11dp"
+            android:text="Cambiar ›" android:textColor="#DDD8FF" android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- [V5/TAREA] Rotar entre las tareas guardadas del proyecto seleccionado. -->
+    <LinearLayout android:id="@+id/widget_task_row"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/tv_widget_selected_task"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="Tarea del proyecto" android:ellipsize="end" android:maxLines="1"
+            android:textSize="11sp" android:textColor="#F2F5FF"/>
+        <TextView android:id="@+id/widget_action_task_change"
+            android:layout_width="wrap_content" android:layout_height="30dp"
+            android:background="@drawable/bg_widget_selector" android:gravity="center"
+            android:paddingStart="8dp" android:paddingEnd="8dp"
+            android:text="↻ Tarea" android:textSize="10sp" android:textColor="#DDD8FF"/>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_widget_task_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="Sin tarea activa"
-        android:textColor="#8F9BB3"
-        android:textSize="12sp" />
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:ellipsize="end" android:maxLines="1"
+        android:text="Sin tarea activa" android:textColor="#94A3C5" android:textSize="11sp" />
 
+    <!-- [V4/CRONOMETRO] El Chronometer cuenta localmente, incluso sin abrir DeepSource. -->
+    <Chronometer
+        android:id="@+id/widget_chronometer"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="1dp" android:text="00:00:00"
+        android:textColor="#FFFFFF" android:textSize="25sp" android:textStyle="bold" />
+
+    <LinearLayout android:id="@+id/widget_actions_row"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:orientation="horizontal">
+        <TextView
+            android:id="@+id/widget_action_primary"
+            android:layout_width="0dp" android:layout_height="39dp" android:layout_weight="1"
+            android:background="@drawable/bg_widget_button" android:gravity="center"
+            android:text="▶ Iniciar" android:textColor="#FFFFFF" android:textSize="12sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/widget_action_open"
+            android:layout_width="0dp" android:layout_height="39dp" android:layout_marginStart="8dp"
+            android:layout_weight="1" android:background="@drawable/bg_widget_button_outline"
+            android:gravity="center" android:text="Abrir app"
+            android:textColor="#FFFFFF" android:textSize="12sp" />
+    </LinearLayout>
 </LinearLayout>

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- [GUIA/ARCHIVO] Estilo de ventana nativo que Android usa antes de Compose. -->
 <resources>
+    <!-- [GUIA/DETALLE] Theme nativo base de Activity; Compose aplica DeepSourceTheme por separado. -->
     <style name="Theme.DeepSourceHoras" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ds_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

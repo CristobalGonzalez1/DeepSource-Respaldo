@@ -1,4 +1,7 @@
 package cl.deepsource.horas.feature.home.components
+// [GUIA/ARCHIVO] Atajo para iniciar tarea; está definido pero no aparece en HomeScreen actual.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/QuickAccessSection.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -37,11 +40,13 @@ import cl.deepsource.horas.core.ui.theme.DsTextPrimary
 import cl.deepsource.horas.domain.model.Project
 
 @Composable
+// [GUIA/FUNCION] QuickAccessSection: Acceso visual rápido a iniciar tarea; definido como componente reutilizable (no se monta en HomeScreen actual).
 fun QuickAccessSection(
     currentProject: Project?,
     onQuickStartTask: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // [GUIA/DETALLE] Atajo solo funciona cuando ya hay proyecto seleccionado.
     val isEnabled = currentProject != null
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -56,6 +61,7 @@ fun QuickAccessSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
+                // [GUIA/DETALLE] Si este componente se monta, el toque dispara el callback de inicio rápido.
                 .clickable(enabled = isEnabled, onClick = onQuickStartTask),
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(

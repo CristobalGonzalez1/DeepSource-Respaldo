@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [WIDGET/ESTILO] Azul principal de DeepSource para acción rápida. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="9dp" />
+    <gradient android:startColor="#2478F8" android:endColor="#4B25EE" android:angle="0" />
+</shape>

@@ -1,0 +1,12 @@
+Comprobaciones realizadas al generar DeepSource_MVVM_MATERIAL_V3:
+
+Kotlin modelo: compilado con kotlinc (sin clases Android) => OK.
+Kotlin repo + ViewModel: compilados con kotlinc y clases Android/Lifecycle simuladas => OK.
+Repositorio (fake SharedPreferences): semillas, inicio, pausa, reanudación, extensión,
+finalización, horas manuales, asignación, persistencia/reapertura, borrado y lectura
+retrocompatible de 5 y 7 campos => OK.
+PSI parser de Kotlin: 47 archivos, 0 errores sintácticos => OK.
+XML: AndroidManifest y todos los recursos XML => OK.
+
+No se ha compilado el módulo Android con Gradle real; falta SDK Android y
+las dependencias Compose en este entorno. No se ha generado APK.

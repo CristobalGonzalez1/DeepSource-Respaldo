@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- [GUIA/ARCHIVO] Colores Android XML del sistema de recursos, separados de la paleta Compose Color.kt. -->
 <resources>
+    <!-- [GUIA/DETALLE] Color definido como recurso Android XML, distinto de Color.kt para Compose. -->
     <color name="ds_background">#050A1A</color>
+    <!-- [GUIA/DETALLE] Color definido como recurso Android XML, distinto de Color.kt para Compose. -->
     <color name="ic_launcher_background">#0C1530</color>
 </resources>

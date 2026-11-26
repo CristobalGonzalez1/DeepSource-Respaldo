@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [V4/ARCHIVOS] Solo los adjuntos almacenados por DeepSource se comparten con un visor externo. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="project_evidence" path="project_attachments/" />
+</paths>

@@ -1,4 +1,7 @@
 package cl.deepsource.horas.core.ui.components
+// [GUIA/ARCHIVO] Dibuja el logo de DeepSource; usa Canvas y no almacena datos.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/core/ui/components/DsBrandHeader.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
@@ -21,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
+// [GUIA/FUNCION] DsBrandHeader: Encabezado reutilizable: dibuja el logotipo con Canvas y el texto de marca.
 fun DsBrandHeader(
     modifier: Modifier = Modifier,
     iconSize: Dp = 38.dp,
@@ -29,6 +33,7 @@ fun DsBrandHeader(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // [GUIA/ESTILO] Dibujo por coordenadas del símbolo geométrico: no se carga desde un servidor.
         Canvas(modifier = Modifier.size(iconSize)) {
             val w = size.width
             val h = size.height
@@ -48,6 +53,7 @@ fun DsBrandHeader(
                 close()
             }
 
+            // [GUIA/ESTILO] Traza líneas del contorno interno del logo.
             drawPath(
                 path = path,
                 color = Color.White,
@@ -68,9 +74,11 @@ fun DsBrandHeader(
                 }
                 close()
             }
+            // [GUIA/ESTILO] Traza líneas del contorno interno del logo.
             drawPath(inner, Color.White, style = Stroke(width = strokeWidthPx, join = StrokeJoin.Round))
             // Inner 3D Cube Y-lines from center (cx, cy)
             // Line 1: Center to top
+            // [GUIA/ESTILO] Dibuja las aristas internas del cubo del logotipo.
             drawLine(
                 color = Color.White,
                 start = androidx.compose.ui.geometry.Offset(cx, cy),
@@ -82,6 +90,7 @@ fun DsBrandHeader(
             // Line 2: Center to bottom-right
             val x2 = cx + (r * Math.cos(Math.toRadians(30.0))).toFloat()
             val y2 = cy + (r * Math.sin(Math.toRadians(30.0))).toFloat()
+            // [GUIA/ESTILO] Dibuja las aristas internas del cubo del logotipo.
             drawLine(
                 color = Color.White,
                 start = androidx.compose.ui.geometry.Offset(cx, cy),
@@ -93,6 +102,7 @@ fun DsBrandHeader(
             // Line 3: Center to bottom-left
             val x3 = cx + (r * Math.cos(Math.toRadians(150.0))).toFloat()
             val y3 = cy + (r * Math.sin(Math.toRadians(150.0))).toFloat()
+            // [GUIA/ESTILO] Dibuja las aristas internas del cubo del logotipo.
             drawLine(
                 color = Color.White,
                 start = androidx.compose.ui.geometry.Offset(cx, cy),
@@ -106,6 +116,7 @@ fun DsBrandHeader(
 
         Column {
             Text(
+                // [GUIA/ESTILO] Primera mitad del texto de marca.
                 text = "DEEP",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
@@ -113,6 +124,7 @@ fun DsBrandHeader(
                 letterSpacing = 0.sp,
             )
             Text(
+                // [GUIA/ESTILO] Segunda mitad del texto de marca.
                 text = "SOURCE",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,

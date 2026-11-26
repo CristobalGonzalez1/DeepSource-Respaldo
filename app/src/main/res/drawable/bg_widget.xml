@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- [GUIA/ARCHIVO] Recurso gráfico XML que actúa como fondo del widget. -->
+<!-- [GUIA/DETALLE] Fondo/forma de widget declarada como drawable XML. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="#0D121F" />

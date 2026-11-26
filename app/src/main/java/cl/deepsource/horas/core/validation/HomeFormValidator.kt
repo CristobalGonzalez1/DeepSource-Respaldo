@@ -1,6 +1,11 @@
 package cl.deepsource.horas.core.validation
+// [GUIA/ARCHIVO] Reglas independientes de Compose para formularios Home.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/core/validation/HomeFormValidator.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
+// [GUIA/TIPO] HomeFormValidator: Reglas para proyectos, tareas, duración y notas; independientes de las pantallas.
 object HomeFormValidator {
+    // [GUIA/FUNCION] projectName: Valida nombre de proyecto: no vacío y longitud de 3 a 60 caracteres.
     fun projectName(name: String): String? = when {
         name.isBlank() -> "Ingresa el nombre del proyecto"
         name.trim().length < 3 -> "El nombre debe tener al menos 3 caracteres"
@@ -8,15 +13,19 @@ object HomeFormValidator {
         else -> null
     }
 
+    // [GUIA/FUNCION] description: Limita descripción de proyecto a 300 caracteres.
     fun description(description: String): String? =
         if (description.length > 300) "Máximo 300 caracteres" else null
 
+    // [GUIA/FUNCION] taskName: Limita el título de tarea a 80 caracteres.
     fun taskName(name: String): String? =
         if (name.length > 80) "El nombre no puede superar 80 caracteres" else null
 
+    // [GUIA/FUNCION] selectedProject: Exige ID no vacío antes de operar sobre proyectos.
     fun selectedProject(id: String): String? =
         if (id.isBlank()) "Debes seleccionar un proyecto" else null
 
+    // [GUIA/FUNCION] validateHours: Acepta de 0 a 23 horas o campo vacío; rechaza caracteres no numéricos.
     fun validateHours(hours: String): String? = when {
         hours.isBlank() -> null
         hours.toLongOrNull() == null -> "Ingresa horas válidas"
@@ -24,6 +33,7 @@ object HomeFormValidator {
         else -> null
     }
 
+    // [GUIA/FUNCION] validateMinutes: Acepta de 0 a 59 minutos o campo vacío.
     fun validateMinutes(minutes: String): String? = when {
         minutes.isBlank() -> null
         minutes.toLongOrNull() == null -> "Ingresa minutos válidos"
@@ -31,6 +41,7 @@ object HomeFormValidator {
         else -> null
     }
 
+    // [GUIA/FUNCION] duration: Valida horas y minutos y rechaza tiempo total igual a 0.
     fun duration(hours: String, minutes: String): String? = when {
         validateHours(hours) != null -> validateHours(hours)
         validateMinutes(minutes) != null -> validateMinutes(minutes)
@@ -38,5 +49,6 @@ object HomeFormValidator {
         else -> null
     }
 
+    // [GUIA/FUNCION] note: Restringe observaciones a 300 caracteres.
     fun note(note: String): String? = if (note.length > 300) "Máximo 300 caracteres" else null
 }

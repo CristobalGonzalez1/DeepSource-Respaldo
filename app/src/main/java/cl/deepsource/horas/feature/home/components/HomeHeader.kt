@@ -1,4 +1,7 @@
 package cl.deepsource.horas.feature.home.components
+// [GUIA/ARCHIVO] Encabezado de usuario y acceso a perfil.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/HomeHeader.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -36,6 +39,7 @@ import cl.deepsource.horas.core.ui.theme.DsTextMuted
 import cl.deepsource.horas.core.ui.theme.DsTextPrimary
 
 @Composable
+// [GUIA/FUNCION] HomeHeader: Cabecera del Home: presenta tarjeta del usuario y abre perfil al tocar.
 fun HomeHeader(
     userName: String,
     userEmail: String,
@@ -45,6 +49,7 @@ fun HomeHeader(
     UserCard(userName, userEmail, onOpenProfile, modifier)
 }
 @Composable
+// [GUIA/FUNCION] UserCard: Tarjeta visual del usuario, con iniciales y callback para abrir perfil.
 fun UserCard(
     userName: String,
     userEmail: String,
@@ -69,6 +74,7 @@ fun UserCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
+                // [GUIA/DETALLE] Toque en tarjeta de usuario: cambia showProfile=true en HomeScreen.
                 .clickable(onClick = onOpenProfile),
             color = androidx.compose.ui.graphics.Color(0xFF1C2639),
             shape = RoundedCornerShape(16.dp),
@@ -123,6 +129,7 @@ fun UserCard(
     }
 }
 
+// [GUIA/FUNCION] getInitials: Toma iniciales del nombre del usuario para el avatar.
 private fun getInitials(name: String): String {
     val parts = name.trim().split(" ").filter { it.isNotBlank() }
     return when {

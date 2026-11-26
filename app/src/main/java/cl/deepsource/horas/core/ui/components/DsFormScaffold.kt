@@ -1,4 +1,7 @@
 package cl.deepsource.horas.core.ui.components
+// [GUIA/ARCHIVO] Base visual compartida de los formularios Recuperar y Solicitar acceso.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/core/ui/components/DsFormScaffold.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +25,7 @@ import androidx.compose.foundation.BorderStroke
 
 /** Estructura común para pantallas secundarias con formulario (recuperar contraseña, solicitar acceso...). */
 @Composable
+// [GUIA/FUNCION] DsFormScaffold: Estructura reutilizable de formularios secundarios con botón Volver, título, subtítulo y contenido.
 fun DsFormScaffold(
     title: String,
     subtitle: String,
@@ -37,6 +41,8 @@ fun DsFormScaffold(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 22.dp, vertical = 16.dp),
         ) {
+            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onBack.
+            // [GUIA/ESTILO] Botón Volver: ejecuta callback que hace popBackStack en AppNavHost.
             TextButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = DsCyan)
                 Spacer(Modifier.width(8.dp))
@@ -53,6 +59,7 @@ fun DsFormScaffold(
                 border = BorderStroke(1.dp, DsOutline),
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
+                // [GUIA/ESTILO] Dentro se inserta el contenido específico de la pantalla secundaria.
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp), content = content)
             }
         }

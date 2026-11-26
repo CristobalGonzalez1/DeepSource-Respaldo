@@ -1,4 +1,7 @@
 package cl.deepsource.horas.core.ui.components
+// [GUIA/ARCHIVO] Fondo degradado del Login y Home, completamente visual.
+// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/core/ui/components/DsScreenBackground.kt
+// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -15,6 +18,7 @@ import cl.deepsource.horas.core.ui.theme.DsCyan
 import cl.deepsource.horas.core.ui.theme.DsViolet
 
 @Composable
+// [GUIA/FUNCION] DsScreenBackground: Fondo visual reutilizable con degradados radiales, sin lógica de negocio.
 fun DsScreenBackground(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
@@ -23,8 +27,10 @@ fun DsScreenBackground(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            // [GUIA/ESTILO] Dibuja el fondo antes que el resto de componentes de la pantalla.
             .drawBehind {
                 drawRect(
+                    // [GUIA/ESTILO] Capa radial decorativa en fondo de la interfaz.
                     Brush.radialGradient(
                         listOf(DsViolet.copy(alpha = 0.35f), Color.Transparent),
                         center = Offset(size.width * 0.9f, size.height * 0.1f),
@@ -32,6 +38,7 @@ fun DsScreenBackground(
                     ),
                 )
                 drawRect(
+                    // [GUIA/ESTILO] Capa radial decorativa en fondo de la interfaz.
                     Brush.radialGradient(
                         listOf(DsCyan.copy(alpha = 0.18f), Color.Transparent),
                         center = Offset(size.width * 0.1f, size.height * 0.95f),
