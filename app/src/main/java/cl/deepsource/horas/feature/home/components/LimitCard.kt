@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.home.components
-// [GUIA/ARCHIVO] Tarjeta de plan; su click se conecta actualmente al control de pausa de tarea.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/LimitCard.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -34,7 +31,7 @@ import cl.deepsource.horas.core.ui.theme.DsSurface
 import cl.deepsource.horas.core.ui.theme.DsViolet
 
 @Composable
-// [GUIA/FUNCION] LimitCard: Tarjeta visual Plan Sin Límites: el onClick se entrega desde HomeScreen y abre información del plan; su diseño no cambió.
+// LimitCard: Tarjeta visual Plan Sin Límites: el onClick se entrega desde HomeScreen y abre información del plan; su diseño no cambió.
 fun LimitCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -44,7 +41,7 @@ fun LimitCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            // [FLUJO/BOTÓN] Abre LimitInfoDialog desde HomeScreen; no modifica el cronómetro.
+            // Abre LimitInfoDialog desde HomeScreen; no modifica el cronómetro.
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = DsSurface),

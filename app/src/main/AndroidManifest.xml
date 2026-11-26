@@ -2,12 +2,16 @@
 <!-- [GUIA/ARCHIVO] Declaración Android de permisos, Application, Activity principal y receptor del widget. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- [GUIA/DETALLE] Permiso de red; en esta app proyectos y login demo no llaman a una API remota. -->
+    <!-- [GUIA/DETALLE] La app se comunica con los servicios propios de proyectos y tareas. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- [GUIA/DETALLE] Permiso requerido para publicar avisos en Android 13 o posterior. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Opcional: en Android 12+ el usuario debe autorizar alarmas exactas en ajustes. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- [GUIA/DETALLE] La cámara es opcional: se usa TakePicturePreview en HomeRoute. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -15,6 +19,7 @@
     <application
         android:name=".DeepSourceApp"
         android:allowBackup="true"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
@@ -31,10 +36,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Servicio de tono repetitivo. No usa una Activity ni desbloquea el teléfono. -->
+        <service android:name=".core.nativefeatures.TaskAlarmSoundService"
+            android:exported="false" android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false" />
         <!-- [V5/ALARMA] Receptor que puede notificar con la Activity cerrada. -->
         <receiver android:name=".core.nativefeatures.TaskDeadlineReceiver" android:exported="false" />
         <receiver android:name=".core.nativefeatures.TaskBootReceiver" android:enabled="true" android:exported="true">
             <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter>
+            <intent-filter><action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" /></intent-filter>
         </receiver>
 
         <!-- [V4/ARCHIVOS] Abre adjuntos mediante content:// temporal, sin exponer archivos privados. -->
@@ -46,6 +56,17 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/project_evidence_paths" />
         </provider>
+
+        <!-- V8: RemoteViewsService protegido para la lista desplazable del widget. -->
+        <service android:name=".widget.WidgetProjectTaskService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="true" />
+        <!-- Formulario de teclado para nuevas tareas desde pantalla de inicio. -->
+        <activity android:name=".widget.WidgetNewTaskActivity"
+            android:exported="false" android:theme="@style/Theme.DeepSourceHoras" />
+
+        <activity android:name=".widget.WidgetManualEntryActivity"
+            android:exported="false" android:theme="@style/Theme.DeepSourceHoras" />
 
         <!-- [GUIA/DETALLE] Declara DeepSourceAppWidget para escuchar actualizaciones del sistema. -->
         <receiver

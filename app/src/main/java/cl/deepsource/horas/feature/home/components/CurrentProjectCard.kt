@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.home.components
-// [GUIA/ARCHIVO] Estado del proyecto seleccionado y visualización del cronómetro.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/CurrentProjectCard.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -52,7 +49,7 @@ import cl.deepsource.horas.domain.model.Project
 import cl.deepsource.horas.domain.model.WorkTask
 
 @Composable
-// [GUIA/FUNCION] CurrentProjectCard: Tarjeta del proyecto actual: muestra resumen, cronómetro activo y botón Detener.
+// CurrentProjectCard: Tarjeta del proyecto actual: muestra resumen, cronómetro activo y botón Detener.
 fun CurrentProjectCard(
     currentProject: Project?,
     weeklyMinutes: Long,
@@ -163,14 +160,14 @@ fun CurrentProjectCard(
                         }
                     }
 
-                    // [GUIA/DETALLE] Muestra/oculta controles de tarea activa con animación.
+                    // Muestra/oculta controles de tarea activa con animación.
                     AnimatedVisibility(
-                        // [GUIA/DETALLE] Solo dibuja zona de cronómetro mientras exista una tarea activa.
+                        // Solo dibuja zona de cronómetro mientras exista una tarea activa.
                         visible = activeTask != null && activeTask.projectId == currentProject.id,
                         enter = fadeIn(),
                         exit = fadeOut(),
                     ) {
-                        // [GUIA/DETALLE] Solo dibuja zona de cronómetro mientras exista una tarea activa.
+                        // Solo dibuja zona de cronómetro mientras exista una tarea activa.
                         if (activeTask != null) {
                             Column {
                                 Spacer(Modifier.height(16.dp))
@@ -194,7 +191,7 @@ fun CurrentProjectCard(
                                             )
                                             Spacer(Modifier.height(2.dp))
                                             Text(
-                                                // [GUIA/DETALLE] Formatea segundos de cronómetro para mostrarlos como HH:MM:SS.
+                                                // Formatea segundos de cronómetro para mostrarlos como HH:MM:SS.
                                                 text = formatSecondsToHms(activeElapsedSeconds),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontFamily = FontFamily.Monospace,
@@ -204,7 +201,7 @@ fun CurrentProjectCard(
                                         }
 
                                         OutlinedButton(
-                                            // [GUIA/DETALLE] Botón Detener: pasa a HomeViewModel.stopActiveTask por HomeRoute.
+                                            // Botón Detener: pasa a HomeViewModel.stopActiveTask por HomeRoute.
                                             onClick = onStopTask,
                                             shape = MaterialTheme.shapes.small,
                                             border = BorderStroke(1.dp, DsError),
@@ -234,7 +231,7 @@ fun CurrentProjectCard(
                     )
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(
-                        // [GUIA/DETALLE] Si todavía no hay proyecto, botón Crear proyecto abre el modal.
+                        // Si todavía no hay proyecto, botón Crear proyecto abre el modal.
                         onClick = onCreateProject,
                         shape = MaterialTheme.shapes.small,
                         border = BorderStroke(1.dp, DsCyan),
@@ -247,15 +244,15 @@ fun CurrentProjectCard(
     }
 }
 
-// [GUIA/FUNCION] formatHoursMinutes: Convierte minutos a horas y minutos para mostrar.
+// formatHoursMinutes: Convierte minutos a horas y minutos para mostrar.
 private fun formatHoursMinutes(minutes: Long): String {
     val hrs = minutes / 60
     val mins = minutes % 60
     return if (hrs > 0) "${hrs}h ${mins}m" else "${mins}m"
 }
 
-// [GUIA/FUNCION] formatSecondsToHms: Convierte segundos activos a HH:MM:SS.
-// [GUIA/DETALLE] Formatea segundos de cronómetro para mostrarlos como HH:MM:SS.
+// formatSecondsToHms: Convierte segundos activos a HH:MM:SS.
+// Formatea segundos de cronómetro para mostrarlos como HH:MM:SS.
 private fun formatSecondsToHms(totalSeconds: Long): String {
     val h = totalSeconds / 3600
     val m = (totalSeconds % 3600) / 60

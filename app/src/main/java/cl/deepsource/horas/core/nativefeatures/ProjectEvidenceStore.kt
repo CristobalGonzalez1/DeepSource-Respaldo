@@ -17,7 +17,7 @@ class ProjectEvidenceStore(private val context: Context) {
     private val prefs = context.getSharedPreferences("deepsource_project_evidence", Context.MODE_PRIVATE)
     private val directory: File get() = File(context.filesDir, "project_attachments").also { it.mkdirs() }
 
-    // [V4/SEGURIDAD] El ID proviene del modelo Project y se valida antes de construir una ruta.
+    // El ID proviene del modelo Project y se valida antes de construir una ruta.
     private fun file(id: String): File {
         require(id.matches(Regex("[a-zA-Z0-9-]{1,64}")))
         return File(directory, "project_$id")

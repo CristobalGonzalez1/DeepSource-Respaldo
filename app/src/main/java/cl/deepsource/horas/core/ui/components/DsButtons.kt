@@ -1,7 +1,4 @@
 package cl.deepsource.horas.core.ui.components
-// [GUIA/ARCHIVO] Botón primario con estilo y spinner; el comportamiento viene del onClick que recibe.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/core/ui/components/DsButtons.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -15,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-// [GUIA/ESTILO] Muestra spinner cuando el ViewModel indica loading=true.
+// Muestra spinner cuando el ViewModel indica loading=true.
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,7 +27,7 @@ import cl.deepsource.horas.core.ui.theme.DsBlue
 import cl.deepsource.horas.core.ui.theme.DsViolet
 
 @Composable
-// [GUIA/FUNCION] DsPrimaryButton: Botón común en Compose: recibe el onClick real desde la pantalla, estilo degradado y estado de carga.
+// DsPrimaryButton: Botón común en Compose: recibe el onClick real desde la pantalla, estilo degradado y estado de carga.
 fun DsPrimaryButton(
     text: String,
     onClick: () -> Unit,
@@ -41,9 +38,9 @@ fun DsPrimaryButton(
 ) {
     val shape = MaterialTheme.shapes.medium
     Button(
-        // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onClick.
+        // onClick: se ejecuta al tocar este botón o control; delega en onClick.
         onClick = onClick,
-        // [GUIA/ESTILO] Deshabilita el botón durante la operación para evitar dobles envíos.
+        // Deshabilita el botón durante la operación para evitar dobles envíos.
         enabled = enabled && !loading,
         modifier = modifier.fillMaxWidth().height(56.dp),
         shape = shape,
@@ -57,13 +54,13 @@ fun DsPrimaryButton(
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(if (enabled || loading) 1f else 0.6f)
-                // [GUIA/ESTILO] Crea degradado cyan/azul/violeta, solo visual.
+                // Crea degradado cyan/azul/violeta, solo visual.
                 .background(Brush.linearGradient(listOf(Color(0xFF0FB9C9), DsBlue, DsViolet)), shape),
             contentAlignment = Alignment.Center,
         ) {
             if (loading) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // [GUIA/ESTILO] Muestra spinner cuando el ViewModel indica loading=true.
+                    // Muestra spinner cuando el ViewModel indica loading=true.
                     CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
                     if (loadingText != null) {
                         Spacer(Modifier.width(12.dp))

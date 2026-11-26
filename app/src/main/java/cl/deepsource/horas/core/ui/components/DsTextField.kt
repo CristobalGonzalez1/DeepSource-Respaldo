@@ -1,7 +1,4 @@
 package cl.deepsource.horas.core.ui.components
-// [GUIA/ARCHIVO] Campo de formulario estilizado con soporte de errores.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/core/ui/components/DsTextField.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
@@ -34,7 +31,7 @@ import cl.deepsource.horas.core.ui.theme.DsTextMuted
 import cl.deepsource.horas.core.ui.theme.DsTextPrimary
 
 @Composable
-// [GUIA/FUNCION] DsTextField: Campo reutilizable: texto controlado, iconos, validación visual y animación de errores.
+// DsTextField: Campo reutilizable: texto controlado, iconos, validación visual y animación de errores.
 fun DsTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -53,15 +50,15 @@ fun DsTextField(
     Column(modifier = modifier.fillMaxWidth()) {
         Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = DsTextMuted)
         Spacer(Modifier.height(8.dp))
-        // [GUIA/ESTILO] Implementación Material 3 del campo de texto.
+        // Implementación Material 3 del campo de texto.
         OutlinedTextField(
             value = value,
-            // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; delega en onValueChange.
+            // onValueChange: recibe el nuevo texto y comunica el cambio al estado; delega en onValueChange.
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
             singleLine = true,
-            // [GUIA/ESTILO] El estado de error del formulario activa borde rojo.
+            // El estado de error del formulario activa borde rojo.
             isError = error != null || errorMessage != null,
             shape = MaterialTheme.shapes.medium,
             placeholder = placeholder?.let { text ->
@@ -71,7 +68,7 @@ fun DsTextField(
             trailingIcon = trailingIcon,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
-            // [GUIA/ESTILO] En Login determina si la contraseña se oculta.
+            // En Login determina si la contraseña se oculta.
             visualTransformation = visualTransformation,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = DsInput,
@@ -93,7 +90,7 @@ fun DsTextField(
                 unfocusedPlaceholderColor = DsTextMuted,
             ),
         )
-        // [GUIA/ESTILO] El texto del error aparece/desaparece suavemente.
+        // El texto del error aparece/desaparece suavemente.
         AnimatedVisibility(
             visible = error != null || errorMessage != null,
             enter = fadeIn() + expandVertically(),

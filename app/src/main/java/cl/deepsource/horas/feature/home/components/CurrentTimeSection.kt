@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.home.components
-// [GUIA/ARCHIVO] Dibuja hora/fecha; los cálculos están en HomeViewModel.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/CurrentTimeSection.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -40,11 +37,11 @@ import cl.deepsource.horas.core.ui.theme.DsTextPrimary
 import cl.deepsource.horas.core.ui.theme.DsViolet
 
 @Composable
-// [GUIA/FUNCION] CurrentTimeSection: Presenta la hora y fecha recibidas del ViewModel (reloj actualizado por StateFlow).
+// CurrentTimeSection: Presenta la hora y fecha recibidas del ViewModel (reloj actualizado por StateFlow).
 fun CurrentTimeSection(
-    // [GUIA/DETALLE] Hora de reloj ya calculada y enviada por HomeViewModel.
+    // Hora de reloj ya calculada y enviada por HomeViewModel.
     timeString: String,
-    // [GUIA/DETALLE] Fecha formateada ya calculada por HomeViewModel.
+    // Fecha formateada ya calculada por HomeViewModel.
     dateString: String,
     modifier: Modifier = Modifier,
 ) {
@@ -93,7 +90,7 @@ fun CurrentTimeSection(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                // [GUIA/DETALLE] Hora de reloj ya calculada y enviada por HomeViewModel.
+                // Hora de reloj ya calculada y enviada por HomeViewModel.
                 text = timeString.ifBlank { "00:00:00" },
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
@@ -116,7 +113,7 @@ fun CurrentTimeSection(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    // [GUIA/DETALLE] Fecha formateada ya calculada por HomeViewModel.
+                    // Fecha formateada ya calculada por HomeViewModel.
                     text = dateString,
                     style = MaterialTheme.typography.bodyMedium,
                     color = DsTextMuted,

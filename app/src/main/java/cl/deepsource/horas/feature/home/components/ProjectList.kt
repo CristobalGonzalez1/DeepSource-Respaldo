@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.home.components
-// [GUIA/ARCHIVO] Listado con selección y eliminación de proyectos.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/ProjectList.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -53,7 +50,7 @@ import cl.deepsource.horas.domain.model.Project
 import cl.deepsource.horas.domain.model.ProjectWithStats
 
 @Composable
-// [GUIA/FUNCION] ProjectList: Lista de proyectos con creación, selección, confirmación y eliminación.
+// ProjectList: Lista de proyectos con creación, selección, confirmación y eliminación.
 fun ProjectList(
     projects: List<ProjectWithStats>,
     onSelectProject: (String) -> Unit,
@@ -62,7 +59,7 @@ fun ProjectList(
     onOpenProjectTasks: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // [GUIA/DETALLE] Si vale null no hay confirmación; si guarda un Project se abre modal eliminar.
+    // Si vale null no hay confirmación; si guarda un Project se abre modal eliminar.
     var projectToDelete by remember { mutableStateOf<Project?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -77,7 +74,7 @@ fun ProjectList(
                 color = DsTextMuted,
                 letterSpacing = 1.2.sp,
             )
-            // [GUIA/DETALLE] Botón + Cargar proyecto muestra CreateProjectDialog.
+            // Botón + Cargar proyecto muestra CreateProjectDialog.
             TextButton(onClick = onCreateProject) {
                 Text("+ Cargar proyecto", color = DsCyan, fontWeight = FontWeight.Bold)
             }
@@ -105,7 +102,7 @@ fun ProjectList(
                     )
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(
-                        // [GUIA/DETALLE] Botón Cargar primer proyecto, visible cuando lista está vacía.
+                        // Botón Cargar primer proyecto, visible cuando lista está vacía.
                         onClick = onCreateProject,
                         shape = MaterialTheme.shapes.small,
                         border = BorderStroke(1.dp, DsCyan),
@@ -122,9 +119,9 @@ fun ProjectList(
                 projects.forEach { item ->
                     ProjectItemRow(
                         item = item,
-                        // [GUIA/DETALLE] Toque en fila: selecciona el proyecto en el repositorio.
+                        // Toque en fila: selecciona el proyecto en el repositorio.
                         onClick = { onSelectProject(item.project.id) },
-                        // [GUIA/DETALLE] Papelera: por seguridad primero pregunta si se desea borrar.
+                        // Papelera: por seguridad primero pregunta si se desea borrar.
                         onDeleteClick = { projectToDelete = item.project },
                         onTasksClick = { onOpenProjectTasks(item.project.id) },
                     )
@@ -137,14 +134,14 @@ fun ProjectList(
         ConfirmDeleteProjectDialog(
             projectName = proj.name,
             onDismiss = { projectToDelete = null },
-            // [GUIA/DETALLE] Confirmación manda ID al repositorio por ViewModel.
+            // Confirmación manda ID al repositorio por ViewModel.
             onConfirm = { onDeleteProject(proj.id) },
         )
     }
 }
 
 @Composable
-// [GUIA/FUNCION] ProjectItemRow: Fila individual; toque selecciona proyecto, papelera pide borrar.
+// ProjectItemRow: Fila individual; toque selecciona proyecto, papelera pide borrar.
 private fun ProjectItemRow(
     item: ProjectWithStats,
     onClick: () -> Unit,
@@ -155,7 +152,7 @@ private fun ProjectItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            // [GUIA/DETALLE] Toda la fila es un botón para marcar proyecto actual.
+            // Toda la fila es un botón para marcar proyecto actual.
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
@@ -224,12 +221,12 @@ private fun ProjectItemRow(
                 }
 
                 Spacer(Modifier.width(4.dp))
-                // [V5/TAREAS] Botón directo a tareas de este proyecto, sin cambiar la selección.
+                // Botón directo a tareas de este proyecto, sin cambiar la selección.
                 IconButton(onClick = onTasksClick, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.ListAlt, contentDescription = "Ver tareas del proyecto", tint = DsCyan)
                 }
                 IconButton(
-                    // [GUIA/DETALLE] Ícono papelera solicita abrir el diálogo de confirmación.
+                    // Ícono papelera solicita abrir el diálogo de confirmación.
                     onClick = onDeleteClick,
                     modifier = Modifier.size(32.dp),
                 ) {
@@ -245,7 +242,7 @@ private fun ProjectItemRow(
     }
 }
 
-// [GUIA/FUNCION] formatDuration: Presenta duración de registro en horas/minutos.
+// formatDuration: Presenta duración de registro en horas/minutos.
 private fun formatDuration(minutes: Long): String {
     val hrs = minutes / 60
     val mins = minutes % 60

@@ -1,6 +1,11 @@
 package cl.deepsource.horas.feature.workflow
 
 import android.Manifest
+import android.app.DatePickerDialog
+import android.app.AlarmManager
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.os.Build
 import android.content.pm.PackageManager
 import android.widget.Toast
@@ -112,7 +117,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// [FLUJO/FORMATO] Estas funciones únicamente preparan texto; NO modifican los registros.
+// Estas funciones únicamente preparan texto; NO modifican los registros.
 private fun clock(seconds: Long): String {
     val s = seconds.coerceAtLeast(0L)
     return "%02d:%02d:%02d".format(Locale.US, s / 3600, s % 3600 / 60, s % 60)
@@ -133,15 +138,65 @@ private fun hour(epoch: Long): String = SimpleDateFormat("HH:mm", Locale("es", "
 fun WorkflowRoute(page: String, viewModel: WorkflowViewModel, onNavigate: (String) -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    // [FLUJO/MENSAJE] Mostrar Toast no es trabajo del repositorio ni del ViewModel.
+    // V8: como ADMIN comienza directamente en Vista de jefe, también se pregunta aquí
+    // en el primer ingreso (antes solo se preguntaba al pasar por Inicio).
+    if (page == Routes.MANAGER) {
+        val noticeSettings = remember(context) { AppSettingsStore(context) }
+        val notifier = remember(context) { TaskNotifications(context) }
+        var askNotifications by remember { mutableStateOf(!noticeSettings.notificationQuestionAnswered) }
+        val request = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            noticeSettings.notificationsEnabled = granted
+            TaskAlarmScheduler.sync(context, context.appContainer().projectRepository.activeTask.value)
+        }
+        if (askNotifications) {
+            val decline: () -> Unit = {
+                noticeSettings.notificationQuestionAnswered = true
+                noticeSettings.notificationsEnabled = false
+                askNotifications = false
+            }
+            val accept: () -> Unit = {
+                noticeSettings.notificationQuestionAnswered = true
+                askNotifications = false
+                if (Build.VERSION.SDK_INT >= 33 && !notifier.hasPermission()) {
+                    request.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    noticeSettings.notificationsEnabled = true
+                    TaskAlarmScheduler.sync(context, context.appContainer().projectRepository.activeTask.value)
+                }
+            }
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = decline,
+                title = { Text("¿Activar notificaciones?") },
+                text = { Text("DeepSource puede avisarte cuando termina una tarea. Están apagadas inicialmente y puedes configurarlas después en Perfil.") },
+                confirmButton = { TextButton(onClick = accept) { Text("Activar") } },
+                dismissButton = { TextButton(onClick = decline) { Text("Ahora no") } },
+            )
+        }
+    }
+    // Mostrar Toast no es trabajo del repositorio ni del ViewModel.
     LaunchedEffect(state.message) {
         state.message?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
             viewModel.clearMessage()
         }
     }
-    // [V5/AVISO] El vencimiento se avisa mediante AlarmManager + notificación del sistema.
-    // Ya no cambiamos de pantalla automáticamente: así desaparece el parpadeo.
+    // [V7/V3 RESTAURADO] La pantalla Recordatorio de V3 vuelve a mostrarse al vencer
+    // el tiempo con la aplicación abierta. Cambiamos solo una vez por cada extensión;
+    // no se usa un reinicio ni se redibuja toda la Activity (sin parpadeo).
+    LaunchedEffect(page, state.nowMs, state.activeTask?.id, state.activeTask?.extensionMinutes) {
+        val task = state.activeTask
+        if (page == Routes.RUNNING && task != null && viewModel.dueAlert(task, state.elapsed)) {
+            TaskAlarmScheduler.deliver(context)
+            onNavigate(Routes.ALERT)
+        }
+    }
+    // Al pulsar Terminar desde el widget, se abre FINISH sin perder tiempo ni guardar
+    // automáticamente. El ViewModel genera el resumen que luego confirma el usuario.
+    LaunchedEffect(page, state.activeTask?.id, state.preview?.task?.id) {
+        if (page == Routes.FINISH && state.activeTask != null && state.preview == null) {
+            viewModel.prepareFinish { }
+        }
+    }
     WorkflowFrame(page, state.activeTask != null, onNavigate) {
         when (page) {
             Routes.START -> StartPage(state, viewModel, onNavigate)
@@ -171,8 +226,8 @@ private fun WorkflowFrame(
             Row(Modifier.fillMaxWidth().padding(horizontal = 19.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
-                // [FLUJO/LOGO] Se reutiliza exactamente el DsBrandHeader anterior, NO se redibuja el logo.
-                DsBrandHeader(iconSize = 24.dp)
+                // Se reutiliza exactamente el DsBrandHeader anterior, NO se redibuja el logo.
+                DsBrandHeader(iconSize = 44.dp)
                 Text(if (isActive) "● EN CURSO" else "● DISPONIBLE",
                     color = if (isActive) DsSuccess else DsCyan, fontSize = 10.sp)
             }
@@ -182,7 +237,7 @@ private fun WorkflowFrame(
                     .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 25.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) { content() }
-            // [V4/NAVEGACION] Barra reutilizada desde Home; permanece fija debajo del contenido desplazable.
+            // Barra reutilizada desde Home; permanece fija debajo del contenido desplazable.
             DsBottomNav(page, isActive, onNavigate)
         }
     }
@@ -233,7 +288,7 @@ private fun Picker(label: String, selected: String, options: List<Pair<String, S
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("⌄", color = DsCyan)
             }
-            // [V4/ESTILO] Contenedor morado suave: evita el menú gris/blanco predeterminado de Android.
+            // Contenedor morado suave: evita el menú gris/blanco predeterminado de Android.
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
@@ -254,20 +309,6 @@ private fun Picker(label: String, selected: String, options: List<Pair<String, S
     }
 }
 
-/** [FLUJO/COMPONENTE] Selección Normal / Media / Compleja con tiempo automático. */
-@Composable
-private fun Difficulty(value: String, onSelect: (String) -> Unit) {
-    MiniLabel("Dificultad")
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        WorkflowDefaults.estimates.keys.forEach { level ->
-            FilterChip(selected = value == level, onClick = { onSelect(level) },
-                label = { Text(level, fontSize = 11.sp) }, modifier = Modifier.weight(1f))
-        }
-    }
-    Text("Tiempo estimado: ${WorkflowDefaults.estimates[value] ?: 90} minutos",
-        color = DsSuccess, fontSize = 13.sp)
-}
-
 @Composable
 private fun ActionRow(first: String, onFirst: () -> Unit, second: String, onSecond: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -276,7 +317,7 @@ private fun ActionRow(first: String, onFirst: () -> Unit, second: String, onSeco
     }
 }
 
-// [FLUJO/PANTALLA] Iniciar tarea -> ViewModel.begin() -> repositorio.startTask() -> widget y reloj.
+// Iniciar tarea -> ViewModel.begin() -> repositorio.startTask() -> widget y reloj.
 @Composable
 private fun StartPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     Heading("Iniciar tarea", "Selecciona qué vas a medir")
@@ -285,9 +326,8 @@ private fun StartPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) ->
         ?: s.selectedTaskNames.firstOrNull().orEmpty(), s.selectedTaskNames.map { it to it }, vm::chooseTask)
     if (s.selectedTaskNames.isEmpty()) Text("Aún no hay tareas en este proyecto.", color = DsTextMuted)
     AddTaskEditor(projectId = s.selectedProject?.id, vm = vm)
-    Difficulty(s.form.difficulty, vm::chooseDifficulty)
     Panel {
-        KeyValue("Tiempo estimado", "${WorkflowDefaults.estimates[s.form.difficulty] ?: 90} min", DsSuccess)
+        KeyValue("Duración estimada de la tarea", "${s.projectTasks.firstOrNull { it.projectId == s.selectedProject?.id && it.name == (s.form.taskName.takeIf { name -> name in s.selectedTaskNames } ?: s.selectedTaskNames.firstOrNull()) }?.estimateMinutes ?: 90} min", DsSuccess)
         Text("La hora de inicio se toma del reloj local del dispositivo.", color = DsTextMuted, fontSize = 12.sp)
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -306,7 +346,7 @@ private fun StartPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) ->
         textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
 }
 
-// [FLUJO/PANTALLA] Reloj calculado desde timestamp + segundos acumulados: sigue contando al minimizar la app.
+// Reloj calculado desde timestamp + segundos acumulados: sigue contando al minimizar la app.
 @Composable
 private fun RunningPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val task = s.activeTask
@@ -356,7 +396,7 @@ private fun RunningPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) 
     }
     if (task.demoReminder) Text("● Aviso de prueba a los 15 segundos", color = DsSuccess, fontSize = 11.sp)
     ActionRow("Finalizar", { vm.prepareFinish { go(Routes.FINISH) } }, "+30 min", { vm.extend { } })
-    // [FLUJO/BOTÓN] Este control complementa Aplazar del HTML; se preserva pausa real de la app original.
+    // Este control complementa Aplazar del HTML; se preserva pausa real de la app original.
     OutlinedButton(onClick = vm::togglePause, modifier = Modifier.fillMaxWidth()) {
         Icon(if (task.paused) Icons.Default.PlayArrow else Icons.Default.Pause, null)
         Text(if (task.paused) " Reanudar cronómetro" else " Pausar cronómetro")
@@ -364,7 +404,7 @@ private fun RunningPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) 
     Text("El cronómetro no mide teclado, cámara ni ubicación.", color = DsTextMuted, fontSize = 11.sp)
 }
 
-// [FLUJO/PANTALLA] Notificación contextual del prototipo; botones llevan al mismo ViewModel.
+// Notificación contextual del prototipo; botones llevan al mismo ViewModel.
 @Composable
 private fun AlertPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val task = s.activeTask
@@ -374,14 +414,21 @@ private fun AlertPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) ->
         Icon(Icons.Default.Warning, "Recordatorio", tint = DsCyan, modifier = Modifier.size(45.dp))
         Text(if (task.demoReminder) "Aviso de prueba" else "¡Tiempo estimado alcanzado!",
             fontSize = 21.sp, fontWeight = FontWeight.Bold, color = DsTextPrimary)
+        Text(task.projectName, color = DsTextMuted, fontSize = 13.sp)
+        Text(task.taskName, color = DsTextPrimary, fontWeight = FontWeight.SemiBold)
         Text("¿Deseas continuar 30 minutos más o finalizar?", color = DsTextMuted)
         KeyValue("Tiempo transcurrido", clock(s.elapsed), DsSuccess)
+        KeyValue("Límite actual", compact(s.limit), DsCyan)
         ActionRow("Finalizar", { vm.prepareFinish { go(Routes.FINISH) } }, "+30 min", { vm.extend { go(Routes.RUNNING) } })
     }
-    OutlinedButton(onClick = { go(Routes.RUNNING) }, modifier = Modifier.fillMaxWidth()) { Text("Ver cronómetro") }
+    OutlinedButton(onClick = { go(Routes.RUNNING) }, modifier = Modifier.fillMaxWidth()) {
+        Text("Ver cronómetro")
+    }
+    Text("La alarma deja de sonar cuando finalizas o aplazas; puedes regresar a ver el cronómetro.",
+        color = DsTextMuted, fontSize = 11.sp)
 }
 
-// [FLUJO/PANTALLA] Confirmación antes de persistir: calcula diferencia estimado - real.
+// Confirmación antes de persistir: calcula diferencia estimado - real.
 @Composable
 private fun FinishPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val preview = s.preview
@@ -396,12 +443,12 @@ private fun FinishPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -
     MiniLabel("¿Qué realizaste?")
     OutlinedTextField(value = s.form.note, onValueChange = { vm.edit { f -> f.copy(note = it) } },
         modifier = Modifier.fillMaxWidth(), minLines = 3, label = { Text("Resumen de trabajo") })
-    // [FLUJO/BOTÓN] Solo aquí termina el registro de forma definitiva.
+    // Solo aquí termina el registro de forma definitiva.
     DsPrimaryButton("Guardar registro", { vm.saveFinished { go(Routes.SAVED) } })
     TextButton(onClick = { go(Routes.RUNNING) }) { Text("Volver al cronómetro (en pausa)") }
 }
 
-// [FLUJO/PANTALLA] Guardado confirmado; toma el registro real del repositorio, no valores simulados.
+// Guardado confirmado; toma el registro real del repositorio, no valores simulados.
 @Composable
 private fun SavedPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val record = s.logs.firstOrNull { it.id == s.lastSavedId } ?: s.logs.firstOrNull()
@@ -422,14 +469,14 @@ private fun SavedPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) ->
     OutlinedButton(onClick = { go(Routes.HISTORY) }, modifier = Modifier.fillMaxWidth()) { Text("Ver historial") }
 }
 
-// [FLUJO/PANTALLA] Detalle de proyecto: los tiempos vienen de registros reales.
+// Detalle de proyecto: los tiempos vienen de registros reales.
 @Composable
 private fun DetailPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val project = s.detailProject
     Heading("Detalle de proyecto", "Información y estado")
     if (project == null) { Text("Selecciona un proyecto en Inicio"); return }
     val logs = s.logs.filter { it.projectId == project.id }
-    // [FLUJO/DEMO] Porcentaje visual de Figma, explícitamente ilustrativo; no se inventa progreso real.
+    // Porcentaje visual de Figma, explícitamente ilustrativo; no se inventa progreso real.
     val sampleProgress = when (project.name) { "Portal Cliente AFC" -> .35f; "Automatización QA" -> .58f; else -> .22f }
     Panel {
         KeyValue("Estado", "ACTIVO", DsSuccess)
@@ -468,60 +515,117 @@ private fun DetailPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -
     OutlinedButton(onClick = { go(Routes.HOME) }, modifier = Modifier.fillMaxWidth()) { Text("Volver al inicio") }
 }
 
-// [FLUJO/PANTALLA] Historial: consulta el mismo TimeLog que Home, incluyendo registros anteriores.
+// Las horas están agrupadas por proyecto para que puedas revisar su detalle sin saturar la pantalla.
 @Composable
 private fun HistoryPage(s: WorkflowUiState, go: (String) -> Unit) {
-    Heading("Historial", "Todas las horas registradas")
+    Heading("Historial", "Revisa tus horas por proyecto")
     Panel {
         KeyValue("Registros", "${s.logs.size}")
         KeyValue("Tiempo total", compact(s.logs.sumOf { it.durationSeconds }), DsSuccess)
     }
-    if (s.logs.isEmpty()) Panel { Text("Aún no hay registros. Tu primera tarea aparecerá aquí.", color = DsTextMuted) }
-    s.logs.sortedByDescending { it.timestampEpochMs }.forEach { entry ->
+    if (s.logs.isEmpty()) Panel { Text("Todavía no has registrado horas.", color = DsTextMuted) }
+    s.projects.forEach { project ->
+        val logs = s.logs.filter { it.projectId == project.id }.sortedByDescending { it.timestampEpochMs }
+        var expanded by remember(project.id) { mutableStateOf(false) }
         Panel {
-            KeyValue(entry.taskName, entry.difficulty, DsCyan)
-            Text("${s.projects.firstOrNull { it.id == entry.projectId }?.name ?: "Proyecto eliminado"} · ${date(entry.timestampEpochMs)}",
-                fontSize = 11.sp, color = DsTextMuted)
-            KeyValue(if (entry.source == "manual") "Registro manual" else "Cronómetro", clock(entry.durationSeconds), DsSuccess)
-            if (entry.note.isNotBlank()) Text(entry.note, color = DsTextMuted, fontSize = 12.sp)
+            Row(Modifier.fillMaxWidth().clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(project.name, fontWeight = FontWeight.Bold, color = DsTextPrimary)
+                    Text("${logs.size} registros · ${compact(logs.sumOf { it.durationSeconds })}",
+                        color = DsTextMuted, fontSize = 12.sp)
+                }
+                Text(if (expanded) "Ocultar −" else "Ver detalle +", color = DsCyan, fontSize = 12.sp)
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    HorizontalDivider(color = DsOutline)
+                    if (logs.isEmpty()) Text("Aún no hay horas registradas en este proyecto.", color = DsTextMuted)
+                    logs.forEach { entry ->
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            KeyValue(entry.taskName, clock(entry.durationSeconds), DsCyan)
+                            Text("${date(entry.timestampEpochMs)} · ${if (entry.source == "manual") "Registro manual" else "Cronómetro"}",
+                                color = DsTextMuted, fontSize = 11.sp)
+                            if (entry.note.isNotBlank()) Text(entry.note, color = DsTextMuted, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
         }
     }
     ActionRow("Iniciar tarea", { go(Routes.START) }, "Registrar manual", { go(Routes.MANUAL) })
 }
 
-// [FLUJO/PANTALLA] Formulario manual independiente del reloj; valida con el mismo repositorio.
+// Selección de fecha con calendario y errores debajo de los campos afectados.
 @Composable
 private fun ManualPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val f = s.form
-    Heading("Registro manual", "Para horas no medidas con cronómetro")
+    val context = LocalContext.current
+    var attempted by remember { mutableStateOf(false) }
+    Heading("Registro manual", "Anota las horas dedicadas a una tarea")
     val manualProject = s.projects.firstOrNull { it.id == f.manualProjectId } ?: s.selectedProject
     val manualTasks = s.projectTasks.filter { it.projectId == manualProject?.id }.map { it.name }
-    Picker("Proyecto", f.manualProjectId.ifBlank { s.selectedProject?.id ?: "" }, s.projects.map { it.id to it.name }) { selected ->
+    Picker("Proyecto", f.manualProjectId.ifBlank { s.selectedProject?.id ?: "" },
+        s.projects.map { it.id to it.name }) { selected ->
         vm.edit { data -> data.copy(manualProjectId = selected, manualTaskName = "") }
     }
+    if (attempted && manualProject == null) Text("Selecciona un proyecto para continuar", color = Color(0xFFFF627A))
     Picker("Tarea", f.manualTaskName.takeIf { it in manualTasks } ?: manualTasks.firstOrNull().orEmpty(),
-        manualTasks.map { it to it }) { selected ->
-        vm.edit { it.copy(manualTaskName = selected) }
+        manualTasks.map { it to it }) { selected -> vm.edit { it.copy(manualTaskName = selected) } }
+    if (attempted && manualTasks.isEmpty()) Text("Este proyecto aún no tiene tareas. Crea una antes de registrar horas.", color = Color(0xFFFF627A))
+
+    MiniLabel("Fecha del registro")
+    val parsedDate = remember(f.manualDate) {
+        runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(f.manualDate) }.getOrNull()
     }
-    Difficulty(f.manualDifficulty) { selected -> vm.edit { it.copy(manualDifficulty = selected) } }
-    MiniLabel("Fecha (AAAA-MM-DD)")
-    OutlinedTextField(value = f.manualDate, onValueChange = { value -> vm.edit { it.copy(manualDate = value) } },
-        modifier = Modifier.fillMaxWidth(), singleLine = true)
+    val dateError = attempted && (parsedDate == null || parsedDate.time > System.currentTimeMillis())
+    OutlinedButton(onClick = {
+        val c = java.util.Calendar.getInstance()
+        if (parsedDate != null) c.time = parsedDate
+        DatePickerDialog(context, { _, year, month, day ->
+            vm.edit { it.copy(manualDate = "%04d-%02d-%02d".format(Locale.US, year, month + 1, day)) }
+        }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DAY_OF_MONTH)).apply {
+            datePicker.maxDate = System.currentTimeMillis()
+        }.show()
+    }, modifier = Modifier.fillMaxWidth().then(if (dateError) Modifier.border(1.dp, Color(0xFFFF627A), RoundedCornerShape(12.dp)) else Modifier)) {
+        Icon(Icons.Default.Schedule, contentDescription = null)
+        Text("  ${f.manualDate}  ·  Elegir en calendario")
+    }
+    if (dateError) Text("Selecciona una fecha válida que no sea futura", color = Color(0xFFFF627A), fontSize = 12.sp)
+
+    val hours = f.manualHours.toIntOrNull()
+    val minutes = f.manualMinutes.toIntOrNull()
+    val hourError = attempted && (hours == null || hours !in 0..23)
+    val minuteError = attempted && (minutes == null || minutes !in 0..59 || ((hours ?: 0) * 60 + (minutes ?: 0) == 0))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(value = f.manualHours, onValueChange = { value -> vm.edit { it.copy(manualHours = value) } },
             label = { Text("Horas") }, modifier = Modifier.weight(1f), singleLine = true,
+            isError = hourError,
+            supportingText = { if (hourError) Text("Entre 0 y 23 horas") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
         OutlinedTextField(value = f.manualMinutes, onValueChange = { value -> vm.edit { it.copy(manualMinutes = value) } },
             label = { Text("Minutos") }, modifier = Modifier.weight(1f), singleLine = true,
+            isError = minuteError,
+            supportingText = { if (minuteError) Text("Entre 0 y 59; total mayor a cero") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
     }
-    MiniLabel("¿Qué realizaste?")
+    val noteError = attempted && f.manualNote.trim().length !in 4..300
     OutlinedTextField(value = f.manualNote, onValueChange = { value -> vm.edit { it.copy(manualNote = value) } },
-        modifier = Modifier.fillMaxWidth(), minLines = 2, label = { Text("Descripción del trabajo") })
-    DsPrimaryButton("Guardar horas", { vm.saveManual { go(Routes.SAVED) } }, enabled = s.projects.isNotEmpty())
+        modifier = Modifier.fillMaxWidth(), minLines = 2, label = { Text("¿Qué trabajo realizaste?") },
+        isError = noteError,
+        supportingText = { if (noteError) Text("Describe tu trabajo usando entre 4 y 300 caracteres") })
+    DsPrimaryButton("Guardar horas", {
+        attempted = true
+        if (manualProject != null && manualTasks.isNotEmpty() && !dateError &&
+            hours != null && hours in 0..23 && minutes != null && minutes in 0..59 &&
+            hours * 60 + minutes > 0 && f.manualNote.trim().length in 4..300 &&
+            parsedDate != null && parsedDate.time <= System.currentTimeMillis()) {
+            vm.saveManual { go(Routes.SAVED) }
+        }
+    }, enabled = s.projects.isNotEmpty())
 }
 
-// [FLUJO/PANTALLA] Reporte: suma segundos reales y estimaciones de cada proyecto; no inventa valores.
+// Reporte: suma segundos reales y estimaciones de cada proyecto; no inventa valores.
 @Composable
 private fun ReportPage(s: WorkflowUiState, go: (String) -> Unit) {
     Heading("Tiempos", "Comparación de trabajo declarado")
@@ -547,7 +651,7 @@ private fun ReportPage(s: WorkflowUiState, go: (String) -> Unit) {
     DsPrimaryButton("Ver historial", { go(Routes.HISTORY) })
 }
 
-// [FLUJO/CÁLCULO] Carga ficticia inicial del HTML + asignaciones + registros propios.
+// Carga ficticia inicial del HTML + asignaciones + registros propios.
 private fun loadMinutes(s: WorkflowUiState, employeeId: String): Int {
     val member = WorkflowDefaults.members.first { it.id == employeeId }
     val assigned = s.assignments.filter { it.employeeId == employeeId }.sumOf { it.estimateMinutes }
@@ -555,12 +659,12 @@ private fun loadMinutes(s: WorkflowUiState, employeeId: String): Int {
     return member.initialLoadMinutes + assigned + logged
 }
 
-// [FLUJO/PANTALLA] Vista de jefe: equipo ilustrativo, guardado de asignaciones REAL en el dispositivo.
+// Vista de jefe: equipo ilustrativo, guardado de asignaciones REAL en el dispositivo.
 @Composable
 private fun ManagerPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val f = s.form
     val selected = WorkflowDefaults.members.firstOrNull { it.id == f.employeeId } ?: WorkflowDefaults.members.first()
-    val estimate = WorkflowDefaults.estimates[f.managerDifficulty] ?: 90
+    val estimate = s.projectTasks.firstOrNull { it.name == f.managerTaskName && it.projectId == (f.managerProjectId.ifBlank { s.selectedProject?.id.orEmpty() }) }?.estimateMinutes ?: 90
     val free = (480 - loadMinutes(s, selected.id)).coerceAtLeast(0)
     Heading("Vista de jefe", "Asigna tareas sin sobrepasar las horas disponibles")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -583,10 +687,9 @@ private fun ManagerPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) 
     }
     Picker("Proyecto", f.managerProjectId.ifBlank { s.selectedProject?.id ?: "" },
         s.projects.map { it.id to it.name }) { id -> vm.edit { it.copy(managerProjectId = id) } }
-    Picker("Tarea", f.managerTaskName, WorkflowDefaults.sampleTasks.map { it to it }) { task ->
+    Picker("Tarea", f.managerTaskName, s.projectTasks.filter { it.projectId == f.managerProjectId.ifBlank { s.selectedProject?.id.orEmpty() } }.map { it.name to it.name }) { task ->
         vm.edit { it.copy(managerTaskName = task) }
     }
-    Difficulty(f.managerDifficulty) { value -> vm.edit { it.copy(managerDifficulty = value) } }
     Panel {
         KeyValue("Estimado", "$estimate min")
         KeyValue("Disponibles después", "${free - estimate} min", if (free >= estimate) DsSuccess else Color(0xFFFF7188))
@@ -596,7 +699,7 @@ private fun ManagerPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) 
     Text("Miembros y carga inicial de ejemplo; no es un sistema remoto de recursos humanos.", color = DsTextMuted, fontSize = 11.sp)
 }
 
-// [FLUJO/PANTALLA] Historial de asignaciones; se conserva al cerrar/abrir la app.
+// Historial de asignaciones; se conserva al cerrar/abrir la app.
 @Composable
 private fun AssignmentsPage(s: WorkflowUiState, go: (String) -> Unit) {
     Heading("Asignaciones", "Tareas del equipo")
@@ -605,7 +708,7 @@ private fun AssignmentsPage(s: WorkflowUiState, go: (String) -> Unit) {
         Panel {
             KeyValue(item.taskName, compact(item.estimateMinutes * 60L), DsCyan)
             Text("${item.employeeName} · ${item.projectName}", color = DsTextMuted, fontSize = 12.sp)
-            KeyValue(date(item.assignedAtEpochMs), item.difficulty)
+            KeyValue("Fecha", date(item.assignedAtEpochMs))
         }
     }
     DsPrimaryButton("Nueva asignación", { go(Routes.MANAGER) })
@@ -616,6 +719,8 @@ private fun AssignmentsPage(s: WorkflowUiState, go: (String) -> Unit) {
 private fun AddTaskEditor(projectId: String?, vm: WorkflowViewModel) {
     var expanded by remember(projectId) { mutableStateOf(false) }
     var name by remember(projectId) { mutableStateOf("") }
+    var planned by remember(projectId) { mutableStateOf("90") }
+    var attempted by remember(projectId) { mutableStateOf(false) }
     OutlinedButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth(),
         enabled = projectId != null) {
         Icon(Icons.Default.AddTask, contentDescription = null)
@@ -624,9 +729,21 @@ private fun AddTaskEditor(projectId: String?, vm: WorkflowViewModel) {
     AnimatedVisibility(expanded) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(value = name, onValueChange = { name = it },
-                label = { Text("Nombre de la nueva tarea") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                label = { Text("Nombre de la nueva tarea") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                isError = attempted && (name.isBlank() || name.length > 80),
+                supportingText = { if (attempted && (name.isBlank() || name.length > 80)) Text("Escribe un nombre de hasta 80 caracteres") })
+            OutlinedTextField(value = planned, onValueChange = { planned = it.filter(Char::isDigit).take(4) },
+                label = { Text("Duración prevista (minutos)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = attempted && (planned.toIntOrNull() ?: 0) !in 1..1440,
+                supportingText = { if (attempted && (planned.toIntOrNull() ?: 0) !in 1..1440) Text("Indica entre 1 y 1440 minutos") })
             DsPrimaryButton("Guardar tarea", onClick = {
-                projectId?.let { id -> vm.addTask(id, name) { name = ""; expanded = false } }
+                attempted = true
+                if (name.isNotBlank() && name.length <= 80 && (planned.toIntOrNull() ?: 0) in 1..1440) {
+                    projectId?.let { id -> vm.addTask(id, name, planned.toIntOrNull() ?: 90) {
+                        name = ""; attempted = false; expanded = false
+                    } }
+                }
             })
         }
     }
@@ -638,11 +755,18 @@ private fun SettingsPage() {
     val context = LocalContext.current
     val store = remember(context) { AppSettingsStore(context) }
     val notifier = remember(context) { TaskNotifications(context) }
-    var enabled by remember { mutableStateOf(store.notificationsEnabled) }
+    var enabled by remember { mutableStateOf(store.notificationsEnabled && notifier.hasPermission()) }
     var vibrate by remember { mutableStateOf(store.vibrationEnabled) }
     var sound by remember { mutableStateOf(store.soundEnabled) }
+    var classicAlarm by remember { mutableStateOf(store.classicAlarmTone) }
     var permission by remember { mutableStateOf(notifier.hasPermission()) }
-    val permissionRequest = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { permission = it }
+    val permissionRequest = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        permission = granted
+        enabled = granted
+        store.notificationsEnabled = granted
+        store.notificationQuestionAnswered = true
+        TaskAlarmScheduler.sync(context, context.appContainer().projectRepository.activeTask.value)
+    }
     val refreshAlarm: () -> Unit = {
         TaskAlarmScheduler.sync(context, context.appContainer().projectRepository.activeTask.value)
     }
@@ -651,10 +775,15 @@ private fun SettingsPage() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.NotificationsActive, null, tint = DsCyan)
             Text("  Notificaciones", color = DsTextPrimary, modifier = Modifier.weight(1f))
-            Switch(checked = enabled, onCheckedChange = {
-                enabled = it; store.notificationsEnabled = it; refreshAlarm()
-                if (it && !notifier.hasPermission() && Build.VERSION.SDK_INT >= 33)
+            Switch(checked = enabled, onCheckedChange = { wantsEnabled ->
+                store.notificationQuestionAnswered = true
+                if (wantsEnabled && Build.VERSION.SDK_INT >= 33 && !notifier.hasPermission()) {
                     permissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    enabled = wantsEnabled
+                    store.notificationsEnabled = wantsEnabled
+                    refreshAlarm()
+                }
             })
         }
         Text(if (permission) "Permiso del sistema concedido" else "El permiso de Android está pendiente",
@@ -675,7 +804,15 @@ private fun SettingsPage() {
             Text("  Vibración", color = DsTextPrimary, modifier = Modifier.weight(1f))
             Switch(checked = vibrate, onCheckedChange = { vibrate = it; store.vibrationEnabled = it })
         }
-        Text("Puedes elegir el tono desde el canal de notificaciones de Android.",
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.VolumeUp, null, tint = DsCyan)
+            Text("  Bip-bip clásico repetitivo", color = DsTextPrimary, modifier = Modifier.weight(1f))
+            Switch(checked = classicAlarm, onCheckedChange = {
+                classicAlarm = it
+                store.classicAlarmTone = it
+            })
+        }
+        Text("Desactivarlo usa el tono predeterminado de alarma. La opción siguiente cambia el sonido de la notificación de respaldo.",
             color = DsTextMuted, fontSize = 12.sp)
         OutlinedButton(onClick = {
             try { context.startActivity(notifier.soundSettingsIntent()) }
@@ -687,9 +824,27 @@ private fun SettingsPage() {
             Text("  Probar sonido y vibración")
         }
     }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val alarmManager = remember(context) { context.getSystemService(AlarmManager::class.java) }
+        if (!alarmManager.canScheduleExactAlarms()) {
+            Panel {
+                MiniLabel("Precisión de la alarma")
+                Text("Para avisos más puntuales, Android puede solicitar el permiso especial de alarmas y recordatorios.",
+                    color = DsTextMuted, fontSize = 12.sp)
+                OutlinedButton(onClick = {
+                    try {
+                        context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                            Uri.parse("package:${context.packageName}")))
+                    } catch (_: Exception) {
+                        Toast.makeText(context, "Abre Alarmas y recordatorios desde Ajustes de Android", Toast.LENGTH_LONG).show()
+                    }
+                }, modifier = Modifier.fillMaxWidth()) { Text("Permitir alarmas precisas (opcional)") }
+            }
+        }
+    }
     Panel {
         MiniLabel("Recordatorios")
-        Text("El aviso se envía fuera de la app al llegar al límite. Android puede retrasarlo si activa el ahorro de batería.",
+        Text("Mientras la tarea está activa, Android muestra un cronómetro y el botón +30 min. Al vencer, vuelve el Recordatorio de V3 con bip-bip y vibración hasta aplazar o finalizar (según los permisos y límites del sistema).",
             color = DsTextMuted, fontSize = 12.sp)
         Text("La prueba rápida de 15 segundos se mantiene disponible en Iniciar tarea.",
             color = DsTextMuted, fontSize = 12.sp)

@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.home.components
-// [GUIA/ARCHIVO] Botones principales de iniciar tarea y registrar horas.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/HomeActions.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
@@ -23,7 +20,7 @@ import cl.deepsource.horas.core.ui.theme.DsSurface
 import cl.deepsource.horas.core.ui.theme.DsTextPrimary
 
 @Composable
-// [GUIA/FUNCION] HomeActions: Botones Iniciar tarea y Registrar horas; reciben callbacks de HomeScreen.
+// HomeActions: Botones Iniciar tarea y Registrar horas; reciben callbacks de HomeScreen.
 fun HomeActions(
     onStartTaskClick: () -> Unit,
     onLogHoursClick: () -> Unit,
@@ -33,13 +30,13 @@ fun HomeActions(
         Row(modifier = Modifier.fillMaxWidth()) {
             DsPrimaryButton(
                 text = "Iniciar tarea",
-                // [GUIA/DETALLE] Botón Iniciar tarea: abre su modal (o crear proyecto si todavía no existen).
+                // Botón Iniciar tarea: abre su modal (o crear proyecto si todavía no existen).
                 onClick = onStartTaskClick,
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(12.dp))
             OutlinedButton(
-                // [GUIA/DETALLE] Botón Registrar horas: abre formulario de duración/nota.
+                // Botón Registrar horas: abre formulario de duración/nota.
                 onClick = onLogHoursClick,
                 modifier = Modifier
                     .weight(1f)

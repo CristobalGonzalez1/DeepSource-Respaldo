@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import cl.deepsource.horas.appContainer
 import cl.deepsource.horas.core.nativefeatures.TaskNotifications
+import cl.deepsource.horas.feature.auth.domain.AuthRepository
+import cl.deepsource.horas.feature.auth.domain.RolePermissions
 import cl.deepsource.horas.domain.model.Project
 import cl.deepsource.horas.domain.model.ProjectTask
 import cl.deepsource.horas.domain.model.TaskAssignment
@@ -66,7 +68,7 @@ data class WorkflowUiState(
     val lastSavedId: String? = null,
     val message: String? = null,
 ) {
-    // [FLUJO/RELOJ] Pared de tiempo real; no depende del número de recomposiciones Compose.
+    // Pared de tiempo real; no depende del número de recomposiciones Compose.
     val elapsed: Long get() = activeTask?.elapsedSeconds(nowMs) ?: 0L
     val limit: Long get() = activeTask?.let { (it.estimateMinutes + it.extensionMinutes) * 60L } ?: 0L
     val selectedProject: Project? get() = projects.firstOrNull { it.id == form.projectId }
@@ -85,13 +87,14 @@ data class WorkflowUiState(
 class WorkflowViewModel(
     private val repository: ProjectRepository,
     private val notifications: TaskNotifications,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
     private val form = MutableStateFlow(WorkflowForm())
     private val now = MutableStateFlow(System.currentTimeMillis())
     private val preview = MutableStateFlow<FinishPreview?>(null)
     private val lastSavedId = MutableStateFlow<String?>(null)
     private val message = MutableStateFlow<String?>(null)
-    // [FLUJO/RECORDATORIO] Esta llave impide abrir el mismo aviso en cada segundo.
+    // Esta llave impide abrir el mismo aviso en cada segundo.
     private val deliveredAlerts = mutableSetOf<String>()
 
     init {
@@ -109,7 +112,7 @@ class WorkflowViewModel(
         val projectTasks: List<ProjectTask> = emptyList(),
     )
 
-    // [FLUJO/STATEFLOW] Combina datos de repositorio, formulario, reloj y confirmación.
+    // Combina datos de repositorio, formulario, reloj y confirmación.
     private val data = combine(repository.projects, repository.currentProject,
         repository.activeTask, repository.timeLogs, repository.assignments) { projects, current, task, logs, assignments ->
         Stored(projects, current, task, logs, assignments)
@@ -125,7 +128,7 @@ class WorkflowViewModel(
     fun clearMessage() { message.value = null }
     fun edit(change: (WorkflowForm) -> WorkflowForm) { form.value = change(form.value) }
 
-    // [FLUJO/BOTÓN] Proyecto: cambia solo selección de formulario; la selección actual se guarda al iniciar.
+    // Proyecto: cambia solo selección de formulario; la selección actual se guarda al iniciar.
     fun chooseProject(id: String) = edit { old ->
         val first = repository.projectTasks.value.firstOrNull { it.projectId == id }?.name.orEmpty()
         old.copy(projectId = id, taskName = first)
@@ -136,9 +139,9 @@ class WorkflowViewModel(
     fun selectDetail(projectId: String) = edit { it.copy(detailProjectId = projectId) }
 
     /** [V5/TAREAS] Añadir tareas antes de iniciar; repositorio persiste la lista por proyecto. */
-    fun addTask(projectId: String, name: String, onSuccess: () -> Unit = {}) {
+    fun addTask(projectId: String, name: String, duration: Int = 90, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            repository.addProjectTask(projectId, name)
+            repository.addProjectTask(projectId, name, duration)
                 .onSuccess { task -> form.value = form.value.copy(projectId = projectId, taskName = task.name); onSuccess() }
                 .onFailure { message.value = it.message ?: "No se pudo añadir la tarea" }
         }
@@ -148,7 +151,7 @@ class WorkflowViewModel(
         repository.deleteProjectTask(id).onFailure { message.value = it.message }
     }
 
-    // [FLUJO/BOTÓN] Iniciar: impide tareas duplicadas; los 90/120/240 min vienen del nivel.
+    // Iniciar: impide tareas duplicadas; los 90/120/240 min vienen del nivel.
     fun begin(onSuccess: () -> Unit) {
         val state = uiState.value
         val project = state.selectedProject ?: run { message.value = "Crea o selecciona un proyecto"; return }
@@ -157,8 +160,8 @@ class WorkflowViewModel(
             ?: state.selectedTaskNames.firstOrNull()
             ?: run { message.value = "Agrega una tarea a este proyecto antes de iniciar"; return }
         viewModelScope.launch {
-            repository.startTask(project.id, taskName, fields.difficulty,
-                WorkflowDefaults.estimates[fields.difficulty] ?: 90, fields.demoReminder)
+            val duration = repository.projectTasks.value.firstOrNull { it.projectId == project.id && it.name == taskName }?.estimateMinutes ?: 90
+            repository.startTask(project.id, taskName, "Programada", duration, fields.demoReminder)
                 .onSuccess {
                     notifications.post("Tarea iniciada", it.taskName)
                     onSuccess()
@@ -166,18 +169,18 @@ class WorkflowViewModel(
         }
     }
 
-    // [FLUJO/BOTÓN] Pausar/reanudar: mantiene la medición previa y avisa al widget.
+    // Pausar/reanudar: mantiene la medición previa y avisa al widget.
     fun togglePause() = viewModelScope.launch {
         repository.toggleTaskPause().onFailure { message.value = it.message }
     }
 
-    // [FLUJO/BOTÓN] +30 min: NO agrega tiempo ficticio al registro, solo extiende el límite.
+    // +30 min: NO agrega tiempo ficticio al registro, solo extiende el límite.
     fun extend(onSuccess: () -> Unit) = viewModelScope.launch {
         repository.extendActiveTask(30).onSuccess { onSuccess() }
             .onFailure { message.value = it.message }
     }
 
-    // [FLUJO/BOTÓN] Finalizar: pausa el reloj y prepara resumen; aún no lo guarda.
+    // Finalizar: pausa el reloj y prepara resumen; aún no lo guarda.
     fun prepareFinish(onSuccess: () -> Unit) {
         viewModelScope.launch {
             val previous = repository.activeTask.value ?: return@launch
@@ -189,7 +192,7 @@ class WorkflowViewModel(
         }
     }
 
-    // [FLUJO/BOTÓN] Guardar registro: añade el resumen al TimeLog y deja el cronómetro inactivo.
+    // Guardar registro: añade el resumen al TimeLog y deja el cronómetro inactivo.
     fun saveFinished(onSuccess: () -> Unit) {
         val note = form.value.note.trim()
         if (note.length !in 4..300) { message.value = "La descripción debe tener entre 4 y 300 caracteres"; return }
@@ -205,7 +208,7 @@ class WorkflowViewModel(
         }
     }
 
-    // [FLUJO/BOTÓN] Guardar manual: valida fecha y duración, sin pasar por un cronómetro.
+    // Guardar manual: valida fecha y duración, sin pasar por un cronómetro.
     fun saveManual(onSuccess: () -> Unit) {
         val state = uiState.value
         val f = state.form
@@ -225,27 +228,32 @@ class WorkflowViewModel(
             ?: run { message.value = "Agrega una tarea a este proyecto"; return }
         viewModelScope.launch {
             repository.logHours(project.id, duration, f.manualNote.trim(), chosenTask,
-                f.manualDifficulty, parsed.time)
+                "Programada", parsed.time)
                 .onSuccess { log -> lastSavedId.value = log.id; onSuccess() }
                 .onFailure { message.value = it.message ?: "No se pudo guardar" }
         }
     }
 
-    // [FLUJO/BOTÓN] Asignar: validación definitiva vive en Repository; actualiza lista y carga.
+    // Asignar: validación definitiva vive en Repository; actualiza lista y carga.
     fun assign(onSuccess: () -> Unit) {
+        // Defensa de rol adicional a la navegación. Nunca asigna un usuario normal.
+        if (!RolePermissions.canManageAssignments(authRepository.currentUser.value)) {
+            message.value = "Acceso exclusivo del administrador"
+            return
+        }
         val state = uiState.value
         val f = state.form
         val project = state.projects.firstOrNull { it.id == f.managerProjectId }
             ?: state.selectedProject ?: run { message.value = "Falta proyecto"; return }
         viewModelScope.launch {
-            repository.assignTask(f.employeeId, project.id, f.managerTaskName, f.managerDifficulty,
-                WorkflowDefaults.estimates[f.managerDifficulty] ?: 90)
+            val estimated = repository.projectTasks.value.firstOrNull { it.projectId == project.id && it.name == f.managerTaskName }?.estimateMinutes ?: 90
+            repository.assignTask(f.employeeId, project.id, f.managerTaskName, "Programada", estimated)
                 .onSuccess { onSuccess() }
                 .onFailure { message.value = it.message ?: "No fue posible asignar" }
         }
     }
 
-    // [FLUJO/AVISO] En esta versión el aviso contextual se dispara con la app abierta.
+    // En esta versión el aviso contextual se dispara con la app abierta.
     // NO promete alarma exacta cuando Android suspende la app. Demo: 15 s; real: tiempo estimado + extensión.
     fun dueAlert(task: WorkTask, seconds: Long): Boolean {
         val threshold = task.nextReminderAtSeconds.takeIf { it > 0L }
@@ -253,7 +261,8 @@ class WorkflowViewModel(
         val id = "${task.id}:${task.extensionMinutes}"
         if (seconds < threshold || id in deliveredAlerts) return false
         deliveredAlerts.add(id)
-        notifications.post("Recordatorio DeepSource", "¿Continuar o finalizar ${task.taskName}?")
+        // El receptor del sistema gestiona la notificación y el sonido; aquí solo se
+        // decide si corresponde mostrar la pantalla V3 una vez por extensión.
         return true
     }
 
@@ -261,7 +270,7 @@ class WorkflowViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = appContainer()
-                WorkflowViewModel(container.projectRepository, TaskNotifications(container.context))
+                WorkflowViewModel(container.projectRepository, TaskNotifications(container.context), container.authRepository)
             }
         }
     }

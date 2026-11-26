@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.home.components
-// [GUIA/ARCHIVO] Diálogos con sus estados, formularios, botones y validaciones.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/home/components/HomeDialogs.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,20 +39,20 @@ import cl.deepsource.horas.domain.model.ProjectWithStats
 import cl.deepsource.horas.core.validation.HomeFormValidator
 
 @Composable
-// [GUIA/FUNCION] CreateProjectDialog: Modal de nuevo proyecto con nombre/descripcion y validación.
+// CreateProjectDialog: Modal de nuevo proyecto con nombre/descripcion y validación.
 fun CreateProjectDialog(
     onDismiss: () -> Unit,
     onCreate: (name: String, description: String) -> Unit,
 ) {
-    // [GUIA/DETALLE] Texto temporal del formulario nuevo proyecto.
+    // Texto temporal del formulario nuevo proyecto.
     var name by remember { mutableStateOf("") }
-    // [GUIA/DETALLE] Descripción opcional temporal antes de Guardar.
+    // Descripción opcional temporal antes de Guardar.
     var description by remember { mutableStateOf("") }
-    // [GUIA/DETALLE] Mensaje de validación, no se guarda en el repositorio.
+    // Mensaje de validación, no se guarda en el repositorio.
     var errorText by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
-        // [GUIA/EVENTO] onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
+        // onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
         onDismissRequest = onDismiss,
         containerColor = DsSurface,
         title = {
@@ -70,7 +67,7 @@ fun CreateProjectDialog(
             Column {
                 DsTextField(
                     value = name,
-                    // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
+                    // onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
                     onValueChange = {
                         name = it
                         errorText = null
@@ -82,7 +79,7 @@ fun CreateProjectDialog(
                 Spacer(Modifier.height(12.dp))
                 DsTextField(
                     value = description,
-                    // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
+                    // onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
                     onValueChange = { description = it },
                     label = "Descripción (opcional)",
                     placeholder = "Breve descripción",
@@ -91,16 +88,16 @@ fun CreateProjectDialog(
         },
         confirmButton = {
             DsPrimaryButton(
-                // [GUIA/DETALLE] Botón Guardar proyecto: primero valida; luego ejecuta callback onCreate.
+                // Botón Guardar proyecto: primero valida; luego ejecuta callback onCreate.
                 text = "Guardar",
-                // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
+                // onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
                 onClick = {
-                    // [GUIA/DETALLE] Valida nombre y descripción al pulsar Guardar.
+                    // Valida nombre y descripción al pulsar Guardar.
                     val problem = HomeFormValidator.projectName(name) ?: HomeFormValidator.description(description)
                     if (problem != null) {
                         errorText = problem
                     } else {
-                        // [GUIA/DETALLE] Propaga datos a HomeScreen -> HomeRoute -> HomeViewModel -> repositorio.
+                        // Propaga datos a HomeScreen -> HomeRoute -> HomeViewModel -> repositorio.
                         onCreate(name, description)
                         onDismiss()
                     }
@@ -109,7 +106,7 @@ fun CreateProjectDialog(
             )
         },
         dismissButton = {
-            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
+            // onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
             TextButton(onClick = onDismiss) {
                 Text("Cancelar", color = DsTextMuted)
             }
@@ -118,14 +115,14 @@ fun CreateProjectDialog(
 }
 
 @Composable
-// [GUIA/FUNCION] ConfirmDeleteProjectDialog: Modal que pide confirmación antes de eliminar un proyecto.
+// ConfirmDeleteProjectDialog: Modal que pide confirmación antes de eliminar un proyecto.
 fun ConfirmDeleteProjectDialog(
     projectName: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AlertDialog(
-        // [GUIA/EVENTO] onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
+        // onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
         onDismissRequest = onDismiss,
         containerColor = DsSurface,
         title = {
@@ -145,11 +142,11 @@ fun ConfirmDeleteProjectDialog(
         },
         confirmButton = {
             DsPrimaryButton(
-                // [GUIA/DETALLE] Confirmar eliminación (requiere toque explícito).
+                // Confirmar eliminación (requiere toque explícito).
                 text = "Eliminar",
-                // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
+                // onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
                 onClick = {
-                    // [GUIA/DETALLE] Confirma en ProjectList y envía ID a HomeViewModel.deleteProject.
+                    // Confirma en ProjectList y envía ID a HomeViewModel.deleteProject.
                     onConfirm()
                     onDismiss()
                 },
@@ -157,7 +154,7 @@ fun ConfirmDeleteProjectDialog(
             )
         },
         dismissButton = {
-            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
+            // onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
             TextButton(onClick = onDismiss) {
                 Text("Cancelar", color = DsTextMuted)
             }
@@ -166,22 +163,22 @@ fun ConfirmDeleteProjectDialog(
 }
 
 @Composable
-// [GUIA/FUNCION] StartTaskDialog: Modal para elegir proyecto y título de tarea antes de iniciar cronómetro.
+// StartTaskDialog: Modal para elegir proyecto y título de tarea antes de iniciar cronómetro.
 fun StartTaskDialog(
     projects: List<ProjectWithStats>,
     selectedProject: Project?,
     onDismiss: () -> Unit,
     onStart: (projectId: String, taskName: String) -> Unit,
 ) {
-    // [GUIA/DETALLE] Guarda qué proyecto fue seleccionado con los RadioButtons.
+    // Guarda qué proyecto fue seleccionado con los RadioButtons.
     var chosenProjectId by remember { mutableStateOf(selectedProject?.id ?: projects.firstOrNull()?.project?.id.orEmpty()) }
-    // [GUIA/DETALLE] Nombre opcional de la nueva tarea.
+    // Nombre opcional de la nueva tarea.
     var taskName by remember { mutableStateOf("") }
-    // [GUIA/ESTADO] Estado local de Compose: al cambiar redibuja el contenido que depende de él.
+    // Estado local de Compose: al cambiar redibuja el contenido que depende de él.
     var taskError by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
-        // [GUIA/EVENTO] onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
+        // onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
         onDismissRequest = onDismiss,
         containerColor = DsSurface,
         title = {
@@ -196,7 +193,7 @@ fun StartTaskDialog(
             Column {
                 Text("Selecciona un proyecto:", style = MaterialTheme.typography.labelMedium, color = DsTextMuted)
                 Spacer(Modifier.height(8.dp))
-                // [GUIA/DETALLE] Genera una fila por cada proyecto disponible para escoger el destino.
+                // Genera una fila por cada proyecto disponible para escoger el destino.
                 projects.forEach { item ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -207,7 +204,7 @@ fun StartTaskDialog(
                     ) {
                         RadioButton(
                             selected = item.project.id == chosenProjectId,
-                            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
+                            // onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
                             onClick = { chosenProjectId = item.project.id },
                             colors = RadioButtonDefaults.colors(selectedColor = DsCyan),
                         )
@@ -218,7 +215,7 @@ fun StartTaskDialog(
                 Spacer(Modifier.height(12.dp))
                 DsTextField(
                     value = taskName,
-                    // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
+                    // onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
                     onValueChange = { taskName = it; taskError = null },
                     label = "Nombre de la tarea (opcional)",
                     placeholder = "Ej: Reunión de avance",
@@ -229,11 +226,11 @@ fun StartTaskDialog(
         confirmButton = {
             DsPrimaryButton(
                 text = "Iniciar",
-                // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
+                // onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
                 onClick = {
                     val problem = HomeFormValidator.selectedProject(chosenProjectId) ?: HomeFormValidator.taskName(taskName)
                     if (problem != null) { taskError = problem } else {
-                        // [GUIA/DETALLE] Botón Iniciar: envía proyecto y nombre al ViewModel.
+                        // Botón Iniciar: envía proyecto y nombre al ViewModel.
                         onStart(chosenProjectId, taskName)
                         onDismiss()
                     }
@@ -242,7 +239,7 @@ fun StartTaskDialog(
             )
         },
         dismissButton = {
-            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
+            // onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
             TextButton(onClick = onDismiss) {
                 Text("Cancelar", color = DsTextMuted)
             }
@@ -251,26 +248,26 @@ fun StartTaskDialog(
 }
 
 @Composable
-// [GUIA/FUNCION] LogHoursDialog: Modal para elegir proyecto, horas, minutos y nota de registro manual.
+// LogHoursDialog: Modal para elegir proyecto, horas, minutos y nota de registro manual.
 fun LogHoursDialog(
     projects: List<ProjectWithStats>,
     selectedProject: Project?,
     onDismiss: () -> Unit,
     onLog: (projectId: String, durationMinutes: Long, note: String) -> Unit,
 ) {
-    // [GUIA/DETALLE] Guarda qué proyecto fue seleccionado con los RadioButtons.
+    // Guarda qué proyecto fue seleccionado con los RadioButtons.
     var chosenProjectId by remember { mutableStateOf(selectedProject?.id ?: projects.firstOrNull()?.project?.id.orEmpty()) }
-    // [GUIA/DETALLE] Cantidad de horas escrita, aún en formato texto.
+    // Cantidad de horas escrita, aún en formato texto.
     var hoursText by remember { mutableStateOf("") }
-    // [GUIA/DETALLE] Cantidad de minutos escrita, aún en formato texto.
+    // Cantidad de minutos escrita, aún en formato texto.
     var minutesText by remember { mutableStateOf("") }
-    // [GUIA/DETALLE] Detalle del tiempo a registrar manualmente.
+    // Detalle del tiempo a registrar manualmente.
     var noteText by remember { mutableStateOf("") }
-    // [GUIA/DETALLE] Mensaje de validación, no se guarda en el repositorio.
+    // Mensaje de validación, no se guarda en el repositorio.
     var errorText by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
-        // [GUIA/EVENTO] onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
+        // onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
         onDismissRequest = onDismiss,
         containerColor = DsSurface,
         title = {
@@ -285,7 +282,7 @@ fun LogHoursDialog(
             Column {
                 Text("Selecciona proyecto:", style = MaterialTheme.typography.labelMedium, color = DsTextMuted)
                 Spacer(Modifier.height(4.dp))
-                // [GUIA/DETALLE] Genera una fila por cada proyecto disponible para escoger el destino.
+                // Genera una fila por cada proyecto disponible para escoger el destino.
                 projects.forEach { item ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -296,7 +293,7 @@ fun LogHoursDialog(
                     ) {
                         RadioButton(
                             selected = item.project.id == chosenProjectId,
-                            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
+                            // onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
                             onClick = { chosenProjectId = item.project.id },
                             colors = RadioButtonDefaults.colors(selectedColor = DsCyan),
                         )
@@ -308,7 +305,7 @@ fun LogHoursDialog(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     DsTextField(
                         value = hoursText,
-                        // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
+                        // onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
                         onValueChange = {
                             hoursText = it
                             errorText = null
@@ -322,7 +319,7 @@ fun LogHoursDialog(
                     Spacer(Modifier.width(12.dp))
                     DsTextField(
                         value = minutesText,
-                        // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
+                        // onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
                         onValueChange = {
                             minutesText = it
                             errorText = null
@@ -340,7 +337,7 @@ fun LogHoursDialog(
                 Spacer(Modifier.height(12.dp))
                 DsTextField(
                     value = noteText,
-                    // [GUIA/EVENTO] onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
+                    // onValueChange: recibe el nuevo texto y comunica el cambio al estado; la lógica concreta está en el bloque de llaves que sigue.
                     onValueChange = { noteText = it },
                     label = "Nota o descripción",
                     placeholder = "Ej: Avance módulo de reportes",
@@ -349,18 +346,18 @@ fun LogHoursDialog(
         },
         confirmButton = {
             DsPrimaryButton(
-                // [GUIA/DETALLE] Botón Guardar proyecto: primero valida; luego ejecuta callback onCreate.
+                // Botón Guardar proyecto: primero valida; luego ejecuta callback onCreate.
                 text = "Guardar",
-                // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
+                // onClick: se ejecuta al tocar este botón o control; la lógica concreta está en el bloque de llaves que sigue.
                 onClick = {
                     val problem = HomeFormValidator.selectedProject(chosenProjectId)
-                        // [GUIA/DETALLE] Revisa número de horas (0-23), minutos (0-59) y total distinto de cero.
+                        // Revisa número de horas (0-23), minutos (0-59) y total distinto de cero.
                         ?: HomeFormValidator.duration(hoursText, minutesText)
                         ?: HomeFormValidator.note(noteText)
                     if (problem != null) { errorText = problem } else {
-                        // [GUIA/DETALLE] Convierte horas y minutos a un solo Long para guardarlo en TimeLog.
+                        // Convierte horas y minutos a un solo Long para guardarlo en TimeLog.
                         val totalMinutes = (hoursText.toLongOrNull() ?: 0L) * 60L + (minutesText.toLongOrNull() ?: 0L)
-                        // [GUIA/DETALLE] Pasa registro manual a HomeViewModel.logHours; el repositorio lo persiste.
+                        // Pasa registro manual a HomeViewModel.logHours; el repositorio lo persiste.
                         onLog(chosenProjectId, totalMinutes, noteText)
                         onDismiss()
                     }
@@ -369,7 +366,7 @@ fun LogHoursDialog(
             )
         },
         dismissButton = {
-            // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
+            // onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
             TextButton(onClick = onDismiss) {
                 Text("Cancelar", color = DsTextMuted)
             }
@@ -378,14 +375,14 @@ fun LogHoursDialog(
 }
 
 @Composable
-// [GUIA/FUNCION] LimitInfoDialog: Modal informativo del supuesto plan y métricas; no se invoca desde HomeScreen actual.
+// LimitInfoDialog: Modal informativo del supuesto plan y métricas; no se invoca desde HomeScreen actual.
 fun LimitInfoDialog(
     projectCount: Int,
     weeklyMinutes: Long,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        // [GUIA/EVENTO] onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
+        // onDismissRequest: se ejecuta al cerrar o descartar la ventana; delega en onDismiss.
         onDismissRequest = onDismiss,
         containerColor = DsSurface,
         title = {
@@ -441,9 +438,9 @@ fun LimitInfoDialog(
         },
         confirmButton = {
             DsPrimaryButton(
-                // [GUIA/DETALLE] Botón del diálogo informativo: solo cierra (esta pantalla no se usa hoy desde Home).
+                // Botón del diálogo informativo: solo cierra (esta pantalla no se usa hoy desde Home).
                 text = "Entendido",
-                // [GUIA/EVENTO] onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
+                // onClick: se ejecuta al tocar este botón o control; delega en onDismiss.
                 onClick = onDismiss,
                 modifier = Modifier.width(120.dp),
             )
@@ -452,7 +449,7 @@ fun LimitInfoDialog(
 }
 
 @Composable
-// [GUIA/FUNCION] FeatureCheckRow: Fila visual con check de características.
+// FeatureCheckRow: Fila visual con check de características.
 private fun FeatureCheckRow(text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -463,7 +460,7 @@ private fun FeatureCheckRow(text: String) {
     }
 }
 
-// [GUIA/FUNCION] formatHoursMinutes: Formato de minutos para el diálogo de estadísticas.
+// formatHoursMinutes: Formato de minutos para el diálogo de estadísticas.
 private fun formatHoursMinutes(minutes: Long): String {
     val hrs = minutes / 60
     val mins = minutes % 60

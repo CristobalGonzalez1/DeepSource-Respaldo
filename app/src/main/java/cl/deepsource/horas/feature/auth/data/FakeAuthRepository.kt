@@ -1,8 +1,6 @@
 package cl.deepsource.horas.feature.auth.data
-// [GUIA/ARCHIVO] Repositorio de autenticación de demo: no existe conexión a servidor.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/auth/data/FakeAuthRepository.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
+import android.content.Context
 import cl.deepsource.horas.feature.auth.domain.AccessRequest
 import cl.deepsource.horas.feature.auth.domain.AuthRepository
 import cl.deepsource.horas.feature.auth.domain.GoogleAccount
@@ -12,75 +10,104 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Locale
 
-// [GUIA/TIPO] FakeAuthRepository: Implementación de demostración: login simulado y acciones sin backend de cuentas.
-class FakeAuthRepository : AuthRepository {
+/**
+ * [V9/SESION] Autenticación de DEMOSTRACIÓN persistente.
+ * Guarda solo la identidad/perfil y el origen de sesión en preferencias privadas:
+ * NO almacena claves ni tokens, ni constituye una autenticación segura de producción.
+ * La sesión vuelve después de cerrar la app / reiniciar Android, hasta Cerrar sesión.
+ */
+class FakeAuthRepository(context: Context) : AuthRepository {
+    private val prefs = context.applicationContext.getSharedPreferences(
+        "deepsource_demo_session_v9", Context.MODE_PRIVATE
+    )
 
-    // [GUIA/DETALLE] MutableStateFlow guarda la sesión en memoria; al reiniciar el proceso se pierde.
-    private val _currentUser = MutableStateFlow<User?>(null)
+    // La restauración es sincrónica: NavHost obtiene la sesión ANTES de elegir su pantalla inicial.
+    private val _currentUser = MutableStateFlow(restoreSavedUser())
     override val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    // [GUIA/FUNCION] signInWithEmail: Solo acepta demo@deepsource.cl / 123456; rememberSession no se persiste en esta versión.
     override suspend fun signInWithEmail(email: String, password: String, rememberSession: Boolean): Result<User> {
-        // [GUIA/DETALLE] Simula latencia de red; no se hace una petición HTTP real.
         delay(FAKE_LATENCY_MS)
-        // [V5/ROLES] Dos cuentas locales demostrativas; la administración NO tiene pestaña.
-        val isNormal = email.trim().equals("demo@deepsource.cl", ignoreCase = true) && password == "123456"
-        val isAdmin = email.trim().equals("admin@deepsource.cl", ignoreCase = true) && password == "admin123"
-        if (isNormal || isAdmin) {
-            val user = User(id = email, name = if (isAdmin) "Administrador Demo" else "Usuario Demo",
-                email = email, role = if (isAdmin) UserRole.ADMIN else UserRole.NORMAL)
-            _currentUser.value = user
-            return Result.success(user)
+        // V9: permanecer conectado es obligatorio en la demo, independientemente del antiguo checkbox.
+        val normalized = email.trim().lowercase(Locale.ROOT)
+        val isAdmin = normalized == ADMIN_EMAIL && password == "admin123"
+        val isNormal = normalized == NORMAL_EMAIL && password == "123456"
+        if (!isAdmin && !isNormal) return Result.failure(IllegalArgumentException("Credenciales incorrectas"))
+        val user = demoUser(normalized) ?: return Result.failure(IllegalArgumentException("Cuenta inválida"))
+        if (!prefs.edit().putString(KEY_PROVIDER, PROVIDER_DEMO)
+                .putString(KEY_EMAIL, normalized)
+                .remove(KEY_NAME).remove(KEY_AVATAR).commit()) {
+            return Result.failure(IllegalStateException("No se pudo guardar la sesión"))
         }
-        return Result.failure(IllegalArgumentException("Credenciales incorrectas"))
-    }
-
-    // [GUIA/FUNCION] signInWithGoogle: Acepta datos de cuenta que devuelve Google y crea sesión en memoria; no comprueba token en servidor.
-    // [GUIA/DETALLE] IMPORTANTE: la cuenta viene de Google, pero esta capa demo no valida el ID token en backend.
-    override suspend fun signInWithGoogle(account: GoogleAccount): Result<User> {
-        // [GUIA/DETALLE] Simula latencia de red; no se hace una petición HTTP real.
-        delay(FAKE_LATENCY_MS)
-        val user = User(
-            id = account.email,
-            name = account.displayName,
-            email = account.email,
-            avatarUrl = account.photoUrl,
-        )
         _currentUser.value = user
         return Result.success(user)
     }
 
-    // [GUIA/FUNCION] sendPasswordReset: SIMULADO: espera y devuelve éxito; no envía correo ni genera enlace real.
-    // [GUIA/DETALLE] Solo retorna éxito local para la demo; no hay enlace ni correo enviado.
+    override suspend fun signInWithGoogle(account: GoogleAccount): Result<User> {
+        delay(FAKE_LATENCY_MS)
+        val email = account.email.trim()
+        if (email.isBlank()) return Result.failure(IllegalArgumentException("Correo Google vacío"))
+        val user = User(
+            id = email, name = account.displayName.ifBlank { email.substringBefore('@') },
+            email = email, avatarUrl = account.photoUrl, role = UserRole.NORMAL
+        )
+        // Google permanece con rol NORMAL; nunca obtiene permisos ADMIN por coincidir el correo.
+        if (!prefs.edit().putString(KEY_PROVIDER, PROVIDER_GOOGLE)
+                .putString(KEY_EMAIL, user.email).putString(KEY_NAME, user.name)
+                .putString(KEY_AVATAR, user.avatarUrl).commit()) {
+            return Result.failure(IllegalStateException("No se pudo guardar la sesión"))
+        }
+        _currentUser.value = user
+        return Result.success(user)
+    }
+
     override suspend fun sendPasswordReset(email: String): Result<Unit> {
-        // [GUIA/DETALLE] Simula latencia de red; no se hace una petición HTTP real.
         delay(FAKE_LATENCY_MS)
-        return Result.success(Unit)
+        return Result.success(Unit) // DEMO: no envía correo
     }
 
-    // [GUIA/FUNCION] requestAccess: SIMULADO: devuelve éxito sin enviar solicitud a un servidor.
-    // [GUIA/DETALLE] Solo retorna éxito local para la demo; no queda una solicitud en servidor.
     override suspend fun requestAccess(request: AccessRequest): Result<Unit> {
-        // [GUIA/DETALLE] Simula latencia de red; no se hace una petición HTTP real.
         delay(FAKE_LATENCY_MS)
-        return Result.success(Unit)
+        return Result.success(Unit) // DEMO: no envía solicitud
     }
 
-    // [GUIA/FUNCION] signOut: Borra el usuario de memoria para cerrar sesión.
     override fun signOut() {
-        // [GUIA/DETALLE] StateFlow queda vacío: la interfaz lo interpreta como sesión cerrada.
+        // commit() inmediato, antes de borrar el estado observable y regresar a Login.
+        prefs.edit().clear().commit()
         _currentUser.value = null
     }
 
-    // [GUIA/FUNCION] nameFromEmail: Helper sin uso actual: arma un nombre legible a partir del correo.
-    private fun nameFromEmail(email: String): String =
-        email.substringBefore('@')
-            .split('.', '_', '-')
-            .filter { it.isNotBlank() }
-            .joinToString(" ") { part -> part.replaceFirstChar { it.uppercase() } }
+    private fun restoreSavedUser(): User? {
+        val email = prefs.getString(KEY_EMAIL, null)?.trim().orEmpty()
+        return when (prefs.getString(KEY_PROVIDER, null)) {
+            PROVIDER_DEMO -> demoUser(email.lowercase(Locale.ROOT))
+            PROVIDER_GOOGLE -> if (email.isBlank()) null else User(
+                id = email, email = email,
+                name = prefs.getString(KEY_NAME, null)?.takeIf { it.isNotBlank() }
+                    ?: email.substringBefore('@'),
+                avatarUrl = prefs.getString(KEY_AVATAR, null),
+                role = UserRole.NORMAL
+            )
+            else -> null
+        }
+    }
+
+    private fun demoUser(email: String): User? = when (email) {
+        ADMIN_EMAIL -> User(id = email, email = email, name = "Administrador Demo", role = UserRole.ADMIN)
+        NORMAL_EMAIL -> User(id = email, email = email, name = "Usuario Demo", role = UserRole.NORMAL)
+        else -> null
+    }
 
     private companion object {
+        const val ADMIN_EMAIL = "admin@deepsource.cl"
+        const val NORMAL_EMAIL = "demo@deepsource.cl"
+        const val PROVIDER_DEMO = "demo"
+        const val PROVIDER_GOOGLE = "google_demo"
+        const val KEY_PROVIDER = "provider"
+        const val KEY_EMAIL = "email"
+        const val KEY_NAME = "name"
+        const val KEY_AVATAR = "avatar"
         const val FAKE_LATENCY_MS = 800L
     }
 }

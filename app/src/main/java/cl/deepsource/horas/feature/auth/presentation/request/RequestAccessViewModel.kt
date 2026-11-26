@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.auth.presentation.request
-// [GUIA/ARCHIVO] Datos del formulario y envío simulado de solicitud de acceso.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/auth/presentation/request/RequestAccessViewModel.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
@@ -21,10 +18,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 // TODO: obtener la lista de proyectos desde el backend.
-// [GUIA/DETALLE] Listado HARDCODEADO para el selector; no viene de un servidor ni de SharedPreferences.
+// Listado HARDCODEADO para el selector; no viene de un servidor ni de SharedPreferences.
 val AvailableProjects = listOf("Portal Cliente AFC", "Automatización QA", "Mesa Operaciones")
 
-// [GUIA/TIPO] RequestAccessUiState: Nombre, correo, proyecto, validaciones y confirmación de solicitud.
+// RequestAccessUiState: Nombre, correo, proyecto, validaciones y confirmación de solicitud.
 data class RequestAccessUiState(
     val fullName: String = "",
     val email: String = "",
@@ -36,20 +33,20 @@ data class RequestAccessUiState(
     val sentTo: String? = null,
 )
 
-// [GUIA/TIPO] RequestAccessViewModel: Gestiona formulario de acceso y remite petición simulada al repositorio.
+// RequestAccessViewModel: Gestiona formulario de acceso y remite petición simulada al repositorio.
 class RequestAccessViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(RequestAccessUiState())
     val state: StateFlow<RequestAccessUiState> = _state.asStateFlow()
 
-    // [GUIA/FUNCION] onNameChange: Actualiza nombre de solicitante.
+    // onNameChange: Actualiza nombre de solicitante.
     fun onNameChange(v: String) = _state.update { it.copy(fullName = v, nameError = null, sentTo = null) }
-    // [GUIA/FUNCION] onEmailChange: Actualiza correo de solicitante.
+    // onEmailChange: Actualiza correo de solicitante.
     fun onEmailChange(v: String) = _state.update { it.copy(email = v, emailError = null, sentTo = null) }
-    // [GUIA/FUNCION] onProjectChange: Selecciona opción del menú local de proyectos.
+    // onProjectChange: Selecciona opción del menú local de proyectos.
     fun onProjectChange(v: String) = _state.update { it.copy(project = v, sentTo = null) }
 
-    // [GUIA/FUNCION] onSubmit: Valida nombre/correo y llama al envío simulado: no existe API remota.
+    // onSubmit: Valida nombre/correo y llama al envío simulado: no existe API remota.
     fun onSubmit() {
         val current = _state.value
         if (current.isLoading) return
@@ -61,9 +58,9 @@ class RequestAccessViewModel(private val authRepository: AuthRepository) : ViewM
         }
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, generalError = null) }
-            // [GUIA/DETALLE] Construye objeto de dominio a partir del formulario.
+            // Construye objeto de dominio a partir del formulario.
             val request = AccessRequest(current.fullName.trim(), current.email.trim(), current.project)
-            // [GUIA/DETALLE] Llama a función demo: no envía correo ni registro a backend.
+            // Llama a función demo: no envía correo ni registro a backend.
             authRepository.requestAccess(request)
                 .onSuccess { _state.update { s -> s.copy(sentTo = request.email) } }
                 .onFailure { _state.update { s -> s.copy(generalError = R.string.error_generic) } }

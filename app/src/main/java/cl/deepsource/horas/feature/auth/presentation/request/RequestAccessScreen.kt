@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.auth.presentation.request
-// [GUIA/ARCHIVO] Vista Solicitar acceso con menú local de proyectos.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/auth/presentation/request/RequestAccessScreen.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -49,14 +46,14 @@ import cl.deepsource.horas.core.ui.theme.DsSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-// [GUIA/FUNCION] RequestAccessRoute: Formulario de solicitud con selector de proyecto y acción Enviar.
+// RequestAccessRoute: Formulario de solicitud con selector de proyecto y acción Enviar.
 fun RequestAccessRoute(
     onBack: () -> Unit,
     viewModel: RequestAccessViewModel = viewModel(factory = RequestAccessViewModel.Factory),
 ) {
-    // [GUIA/DETALLE] Observa estado de nombre, email, proyecto y errores en pantalla.
+    // Observa estado de nombre, email, proyecto y errores en pantalla.
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // [GUIA/ESTADO] Estado local de Compose: al cambiar redibuja el contenido que depende de él.
+    // Estado local de Compose: al cambiar redibuja el contenido que depende de él.
     var menuOpen by remember { mutableStateOf(false) }
 
     DsFormScaffold(
@@ -66,7 +63,7 @@ fun RequestAccessRoute(
     ) {
         DsTextField(
             value = state.fullName,
-            // [GUIA/DETALLE] Campo Nombre completo manda datos al ViewModel.
+            // Campo Nombre completo manda datos al ViewModel.
             onValueChange = viewModel::onNameChange,
             label = stringResource(R.string.field_name),
             leadingIcon = Icons.Outlined.Person,
@@ -76,7 +73,7 @@ fun RequestAccessRoute(
         )
         DsTextField(
             value = state.email,
-            // [GUIA/DETALLE] Campo Email manda datos al ViewModel.
+            // Campo Email manda datos al ViewModel.
             onValueChange = viewModel::onEmailChange,
             label = stringResource(R.string.field_email),
             placeholder = stringResource(R.string.field_email_placeholder),
@@ -92,7 +89,7 @@ fun RequestAccessRoute(
             ExposedDropdownMenuBox(expanded = menuOpen, onExpandedChange = { menuOpen = it }) {
                 OutlinedTextField(
                     value = state.project,
-                    // [GUIA/DETALLE] Campo visual solo lectura: la selección real se realiza desde el menú desplegable.
+                    // Campo visual solo lectura: la selección real se realiza desde el menú desplegable.
                     onValueChange = {},
                     readOnly = true,
                     singleLine = true,
@@ -110,7 +107,7 @@ fun RequestAccessRoute(
                 )
                 ExposedDropdownMenu(
                     expanded = menuOpen,
-                    // [GUIA/DETALLE] Cierra la lista al tocar fuera del menú.
+                    // Cierra la lista al tocar fuera del menú.
                     onDismissRequest = { menuOpen = false },
                     containerColor = DsSurface,
                 ) {
@@ -118,7 +115,7 @@ fun RequestAccessRoute(
                         AvailableProjects.forEach { project ->
                             DropdownMenuItem(
                                 text = { Text(project, color = DsTextPrimary) },
-                                // [GUIA/DETALLE] Una opción del menú fija el proyecto seleccionado y oculta el menú.
+                                // Una opción del menú fija el proyecto seleccionado y oculta el menú.
                                 onClick = {
                                     viewModel.onProjectChange(project)
                                     menuOpen = false
@@ -133,7 +130,7 @@ fun RequestAccessRoute(
         state.generalError?.let { Text(stringResource(it), color = DsError, style = MaterialTheme.typography.bodyMedium) }
         DsPrimaryButton(
             text = stringResource(R.string.request_submit),
-            // [GUIA/DETALLE] Botón Enviar solicitud: valida los campos y llama al flujo simulado.
+            // Botón Enviar solicitud: valida los campos y llama al flujo simulado.
             onClick = viewModel::onSubmit,
             loading = state.isLoading,
         )

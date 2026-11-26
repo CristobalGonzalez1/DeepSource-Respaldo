@@ -9,6 +9,6 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 // [GUIA/CONFIG] Nombre con que Android Studio identifica el proyecto.
-rootProject.name = "DeepSourceHoras"
+rootProject.name = "DeepSourceHorasV6"
 // [GUIA/CONFIG] Incluye el módulo de aplicación, donde está el código Kotlin.
 include(":app")

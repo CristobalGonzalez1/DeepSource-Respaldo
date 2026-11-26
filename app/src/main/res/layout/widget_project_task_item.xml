@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_collection_row"
+    android:layout_width="match_parent" android:layout_height="38dp"
+    android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="6dp"
+    android:singleLine="true" android:ellipsize="end"
+    android:textColor="#E9F0FF" android:textSize="11sp" />

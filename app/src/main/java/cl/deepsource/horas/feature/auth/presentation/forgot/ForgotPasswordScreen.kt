@@ -1,7 +1,4 @@
 package cl.deepsource.horas.feature.auth.presentation.forgot
-// [GUIA/ARCHIVO] Vista y enlace de Recuperar contraseña con su ViewModel.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/feature/auth/presentation/forgot/ForgotPasswordScreen.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,12 +21,12 @@ import cl.deepsource.horas.core.ui.theme.DsError
 import cl.deepsource.horas.core.ui.theme.DsSuccess
 
 @Composable
-// [GUIA/FUNCION] ForgotPasswordRoute: Pantalla de recuperar contraseña; recoge email y muestra respuesta del ViewModel.
+// ForgotPasswordRoute: Pantalla de recuperar contraseña; recoge email y muestra respuesta del ViewModel.
 fun ForgotPasswordRoute(
     onBack: () -> Unit,
     viewModel: ForgotPasswordViewModel = viewModel(factory = ForgotPasswordViewModel.Factory),
 ) {
-    // [GUIA/DETALLE] Lee el resultado del ViewModel; al cambiar, actualiza los textos en pantalla.
+    // Lee el resultado del ViewModel; al cambiar, actualiza los textos en pantalla.
     val state by viewModel.state.collectAsStateWithLifecycle()
     DsFormScaffold(
         title = stringResource(R.string.forgot_title),
@@ -38,7 +35,7 @@ fun ForgotPasswordRoute(
     ) {
         DsTextField(
             value = state.email,
-            // [GUIA/DETALLE] Campo correo manda texto al ViewModel.
+            // Campo correo manda texto al ViewModel.
             onValueChange = viewModel::onEmailChange,
             label = stringResource(R.string.field_email),
             placeholder = stringResource(R.string.field_email_placeholder),
@@ -51,7 +48,7 @@ fun ForgotPasswordRoute(
         state.generalError?.let { Text(stringResource(it), color = DsError, style = MaterialTheme.typography.bodyMedium) }
         DsPrimaryButton(
             text = stringResource(R.string.forgot_submit),
-            // [GUIA/DETALLE] Botón Enviar enlace: valida email y ejecuta repositorio SIMULADO.
+            // Botón Enviar enlace: valida email y ejecuta repositorio SIMULADO.
             onClick = viewModel::onSubmit,
             loading = state.isLoading,
         )

@@ -1,9 +1,14 @@
 package cl.deepsource.horas.navigation
-// [GUIA/ARCHIVO] Mapa de navegación: dónde está cada pantalla y qué botón cambia de ruta.
-// [GUIA/UBICACION] app/src/main/java/cl/deepsource/horas/navigation/AppNavHost.kt
-// [GUIA/LECTURA] Sigue los comentarios de funcion, datos, botones y flujo; son explicativos y no ejecutables.
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cl.deepsource.horas.appContainer
+import cl.deepsource.horas.feature.auth.domain.RolePermissions
+import cl.deepsource.horas.feature.auth.domain.UserRole
+import cl.deepsource.horas.feature.profile.ProfileRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,51 +22,107 @@ import cl.deepsource.horas.feature.workflow.WorkflowViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-// [GUIA/FUNCION] AppNavHost: Grafo de navegación Compose: conecta Login, Recuperar, Solicitar acceso y Home.
-fun AppNavHost(navController: NavHostController = rememberNavController()) {
-    // [FLUJO/MVVM] Un ViewModel de flujo compartido entre todas las vistas nuevas.
+// AppNavHost: Grafo de navegación Compose: conecta Login, Recuperar, Solicitar acceso y Home.
+fun AppNavHost(
+    navController: NavHostController = rememberNavController(),
+    externalRoute: String? = null,
+    onExternalRouteConsumed: () -> Unit = {},
+) {
+    // Un ViewModel de flujo compartido entre todas las vistas nuevas.
     // HomeViewModel anterior NO se elimina ni se reemplaza.
     val workflowViewModel: WorkflowViewModel = viewModel(factory = WorkflowViewModel.Factory)
+    val authRepository = LocalContext.current.appContainer().authRepository
+    val currentUser by authRepository.currentUser.collectAsStateWithLifecycle()
     fun navigateTo(route: String) {
         navController.navigate(route) { launchSingleTop = true }
     }
-    // [GUIA/DETALLE] La aplicación inicia siempre en Login; no hay restauración automática de sesión.
-    NavHost(navController = navController, startDestination = Routes.LOGIN) {
-        // [GUIA/DETALLE] Componente que entrega la pantalla de login y sus funciones de navegación.
+    // Se calcula UNA sola vez al crear el NavHost; no navegar a Login por defecto.
+    // Un intent abierto desde widget, notificación o launcher usa la misma sesión restaurada.
+    val initialRoute = androidx.compose.runtime.remember {
+        val savedUser = authRepository.currentUser.value
+        when {
+            savedUser == null -> Routes.LOGIN
+            externalRoute in setOf(Routes.ALERT, Routes.RUNNING, Routes.HOME, Routes.FINISH) -> externalRoute!!
+            savedUser.role == UserRole.ADMIN -> Routes.MANAGER
+            else -> Routes.HOME
+        }
+    }
+    // Los nuevos intents (onNewIntent) también respetan la sesión, sin doble navegación.
+    LaunchedEffect(externalRoute, currentUser?.id) {
+        if (externalRoute in setOf(Routes.ALERT, Routes.RUNNING, Routes.HOME, Routes.FINISH) &&
+            currentUser != null && navController.currentDestination?.route != Routes.LOGIN
+        ) {
+            if (navController.currentDestination?.route != externalRoute) navigateTo(externalRoute!!)
+            onExternalRouteConsumed()
+        }
+    }
+    // Si Android invalida la Activity pero no los datos, la sesión se recupera desde SharedPreferences.
+    NavHost(navController = navController, startDestination = initialRoute) {
+        // Componente que entrega la pantalla de login y sus funciones de navegación.
         composable(Routes.LOGIN) {
             LoginRoute(
                 onLoggedIn = {
-                    // [GUIA/DETALLE] Login exitoso: abre Home y quita Login del historial para impedir volver con Atrás.
-                    navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                    // Login exitoso: abre Home y quita Login del historial para impedir volver con Atrás.
+                    // V8: la cuenta ADMIN entra directamente a su panel; NORMAL conserva Inicio.
+                    val entry = when {
+                        externalRoute in setOf(Routes.ALERT, Routes.RUNNING, Routes.HOME, Routes.FINISH) -> externalRoute!!
+                        authRepository.currentUser.value?.role == UserRole.ADMIN -> Routes.MANAGER
+                        else -> Routes.HOME
+                    }
+                    navController.navigate(entry) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    if (externalRoute != null) onExternalRouteConsumed()
                 },
-                // [GUIA/DETALLE] El botón Recuperar contraseña abre FORGOT_PASSWORD.
+                // El botón Recuperar contraseña abre FORGOT_PASSWORD.
                 onForgotPassword = { navController.navigate(Routes.FORGOT_PASSWORD) },
-                // [GUIA/DETALLE] El botón Solicitar acceso abre REQUEST_ACCESS.
+                // El botón Solicitar acceso abre REQUEST_ACCESS.
                 onRequestAccess = { navController.navigate(Routes.REQUEST_ACCESS) },
             )
         }
-        // [GUIA/DETALLE] Volver elimina pantalla actual de la pila y retorna al Login.
+        // Volver elimina pantalla actual de la pila y retorna al Login.
         composable(Routes.FORGOT_PASSWORD) { ForgotPasswordRoute(onBack = { navController.popBackStack() }) }
-        // [GUIA/DETALLE] Volver desde solicitar acceso regresa al Login.
+        // Volver desde solicitar acceso regresa al Login.
         composable(Routes.REQUEST_ACCESS) { RequestAccessRoute(onBack = { navController.popBackStack() }) }
-        // [GUIA/DETALLE] Aquí se crea HomeRoute, con cierre de sesión que devuelve a Login.
+        // Aquí se crea HomeRoute, con cierre de sesión que devuelve a Login.
         composable(Routes.HOME) {
             HomeRoute(
-                // [FLUJO/ACCESOS] Botones Material del Home usan el NavHost, no crean Activities nuevas.
+                // Botones Material del Home usan el NavHost, no crean Activities nuevas.
                 onOpenWorkflow = { navigateTo(it) },
                 onOpenProjectTasks = { id -> workflowViewModel.selectDetail(id); navigateTo(Routes.DETAIL) },
+            )
+        }
+        composable(Routes.PROFILE) {
+            ProfileRoute(
+                onNavigate = { navigateTo(it) },
                 onSignedOut = {
-                    // [GUIA/DETALLE] Al cerrar sesión se vuelve a Login y se elimina Home del historial.
-                    navController.navigate(Routes.LOGIN) { popUpTo(Routes.HOME) { inclusive = true } }
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 },
             )
         }
-        // [FLUJO/NAVEGACIÓN] Mapeo único: cada ruta se une a una pantalla Compose y al mismo VM.
+        // Mapeo único: cada ruta se une a una pantalla Compose y al mismo VM.
         listOf(Routes.START, Routes.RUNNING, Routes.ALERT, Routes.FINISH, Routes.SAVED,
             Routes.DETAIL, Routes.MANAGER, Routes.ASSIGNMENTS, Routes.HISTORY,
             Routes.MANUAL, Routes.REPORT, Routes.SETTINGS).forEach { page ->
             composable(page) {
-                WorkflowRoute(page, workflowViewModel, onNavigate = { navigateTo(it) })
+                // Se observa DENTRO de cada destino. El grafo NavHost se recuerda y no debe capturar
+                // un usuario obsoleto (por ejemplo, null antes de completar el login).
+                val currentUser by authRepository.currentUser.collectAsStateWithLifecycle()
+                // Control de rol en el destino: no basta con ocultar el botón del panel.
+                if (page in setOf(Routes.MANAGER, Routes.ASSIGNMENTS) && !RolePermissions.canManageAssignments(currentUser)) {
+                    LaunchedEffect(page, currentUser?.role) {
+                        navController.navigate(if (currentUser == null) Routes.LOGIN else Routes.PROFILE) {
+                            popUpTo(page) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                } else {
+                    WorkflowRoute(page, workflowViewModel, onNavigate = { navigateTo(it) })
+                }
             }
         }
     }

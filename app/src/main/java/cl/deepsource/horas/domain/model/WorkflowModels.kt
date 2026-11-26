@@ -5,7 +5,7 @@ package cl.deepsource.horas.domain.model
  * Sus valores se gestionan desde ViewModel -> ProjectRepository -> SharedPreferences.
  */
 object WorkflowDefaults {
-    // [FLUJO/DIFICULTAD] Las tres duraciones están tomadas del HTML de referencia.
+    // Las tres duraciones están tomadas del HTML de referencia.
     val estimates = linkedMapOf("Normal" to 90, "Media" to 120, "Compleja" to 240)
     val sampleTasks = listOf(
         "Implementar login OAuth", "Revisar incidencia pendiente",
