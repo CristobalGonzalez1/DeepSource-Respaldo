@@ -8,7 +8,7 @@ import retrofit2.http.*
 // Aquí Retrofit consulta nuestra API de proyectos y tareas; el emulador usa 10.0.2.2 para llegar al computador.
 data class RemoteProject(val id: Long? = null, val name: String, val description: String = "", val clientId: String? = null)
 data class RemoteTask(val id: Long? = null, val projectId: Long, val name: String, val status: String = "OPEN", val clientId: String? = null, val estimateMinutes: Int = 90)
-data class RemoteHours(val id: Long? = null, val projectId: Long, val taskName: String, val durationMinutes: Long, val workedOn: String, val note: String = "", val clientId: String? = null)
+data class RemoteHours(val id: Long? = null, val projectId: Long, val taskName: String, val durationMinutes: Long, val workedOn: String, val note: String = "", val clientId: String? = null, val source: String = "manual", val durationSeconds: Long? = null, val timestampEpochMs: Long? = null)
 data class Holiday(val title: String? = null, val date: String? = null, val type: String? = null)
 data class HolidayResponse(val data: List<Holiday> = emptyList())
 

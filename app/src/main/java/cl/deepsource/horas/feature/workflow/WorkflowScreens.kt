@@ -509,7 +509,7 @@ private fun FinishPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -
 private fun SavedPage(s: WorkflowUiState, vm: WorkflowViewModel, go: (String) -> Unit) {
     val record = s.logs.firstOrNull { it.id == s.lastSavedId } ?: s.logs.firstOrNull()
     Icon(Icons.Default.CheckCircle, null, tint = DsSuccess, modifier = Modifier.size(40.dp))
-    Heading("¡Registro guardado!", "Los datos quedaron almacenados en este teléfono")
+    Heading("¡Registro guardado!", "Guardado en el teléfono; la sincronización con el servidor es automática cuando hay conexión")
     if (record != null) Panel {
         Text(record.taskName, color = DsTextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         Text(s.projects.firstOrNull { it.id == record.projectId }?.name ?: "Proyecto", color = DsTextMuted)

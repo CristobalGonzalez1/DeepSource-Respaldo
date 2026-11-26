@@ -24,6 +24,8 @@ import java.util.UUID
 import cl.deepsource.horas.data.remote.RemoteApi
 import cl.deepsource.horas.data.remote.RemoteProject
 import cl.deepsource.horas.data.remote.RemoteTask
+import cl.deepsource.horas.data.remote.RemoteHours
+import cl.deepsource.horas.data.remote.HoursSyncMapper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,6 +66,10 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncLock = Mutex()
+
+    // Permite distinguir si las horas están sincronizadas o esperando conexión.
+    private val _hoursSyncStatus = MutableStateFlow("Pendiente de sincronizar")
+    val hoursSyncStatus: StateFlow<String> = _hoursSyncStatus.asStateFlow()
 
     init {
         loadData()
@@ -128,12 +134,60 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
                         estimateMinutes = (remote.estimateMinutes).coerceIn(1, 1440))
                 }
                 _projectTasks.value = mergedTasks
+                // El envío de horas es independiente: si falla, los proyectos y
+                // los registros del teléfono siguen disponibles.
+                val hoursOk = syncHoursWithApi(serverProjects)
                 saveData()
-                true
+                hoursOk
             } catch (_: Exception) {
+                _hoursSyncStatus.value = "Sin conexión: horas pendientes en este dispositivo"
                 // La aplicación sigue operativa con la información guardada en el dispositivo.
                 false
             }
+        }
+    }
+
+
+    /** Sincronizamos las horas con el segundo microservicio Spring Boot.
+     *  Cada registro mantiene su UUID como clientId para no crearlo dos veces
+     *  aunque se cierre la aplicación después de una solicitud exitosa.
+     */
+    private suspend fun syncHoursWithApi(serverProjects: List<RemoteProject>): Boolean {
+        return try {
+            val serverLogs = RemoteApi.hours.hours()
+            val existingIds = serverLogs.mapNotNull { it.clientId }.toMutableSet()
+            val projectsByLocalId = serverProjects.mapNotNull { project ->
+                val id = project.id ?: return@mapNotNull null
+                (project.clientId ?: "servidor-$id") to id
+            }.toMap()
+            for (log in _timeLogs.value) {
+                // Los registros históricos sin clientId que importamos del servidor
+                // no deben volverse a publicar con un identificador distinto.
+                if (log.id.startsWith("horas-servidor-")) continue
+                val remoteProjectId = projectsByLocalId[log.projectId] ?: continue
+                if (log.id in existingIds) continue
+                val created = RemoteApi.hours.addHours(HoursSyncMapper.toRemote(log, remoteProjectId))
+                existingIds.add(created.clientId ?: log.id)
+            }
+            // Recuperamos del servidor registros de los proyectos conocidos.
+            // Los registros locales conservan sus segundos exactos y sus evidencias.
+            val freshLogs = RemoteApi.hours.hours()
+            val localProjectByRemoteId = projectsByLocalId.entries.associate { (localId, remoteId) -> remoteId to localId }
+            val knownLocalIds = _timeLogs.value.map { it.id }.toSet()
+            val imported = freshLogs.mapNotNull { remote ->
+                val localProjectId = localProjectByRemoteId[remote.projectId] ?: return@mapNotNull null
+                val id = remote.clientId ?: "horas-servidor-${remote.id}"
+                if (id in knownLocalIds) null else HoursSyncMapper.toLocal(remote, localProjectId)
+            }.distinctBy { it.id }
+            if (imported.isNotEmpty()) {
+                _timeLogs.value = (_timeLogs.value + imported).distinctBy { it.id }
+                    .sortedByDescending { it.timestampEpochMs }
+            }
+            _hoursSyncStatus.value = "Horas sincronizadas con Spring Boot"
+            true
+        } catch (_: Exception) {
+            _hoursSyncStatus.value = "Sin conexión: horas pendientes en este dispositivo"
+            false
         }
     }
 
@@ -323,6 +377,7 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
         _timeLogs.value = _timeLogs.value + log
         _activeTask.value = null
         saveData()
+        syncLater()  // Registro finalizado: enviamos las horas al servidor.
         return Result.success(log)
     }
 
@@ -353,6 +408,7 @@ class LocalProjectRepository(private val context: Context) : ProjectRepository {
 
         _timeLogs.value = _timeLogs.value + log
         saveData()
+        syncLater()  // Mismo proceso para registro manual y widget.
         return Result.success(log)
     }
 

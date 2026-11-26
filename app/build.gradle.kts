@@ -14,8 +14,8 @@ android {
         applicationId = "cl.deepsource.horas"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.14"
+        versionCode = 15
+        versionName = "1.15"
         val googleClientId = providers.gradleProperty("GOOGLE_WEB_CLIENT_ID").getOrElse("")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleClientId\"")
         // Configurable from gradle.properties or -PAPI_BASE_URL=...

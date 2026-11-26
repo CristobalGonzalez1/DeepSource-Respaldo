@@ -9,6 +9,15 @@ public class HoursEntity {
     private String workedOn;
     private String note;
     private String clientId;
+    private String source = "manual";
+    private Long durationSeconds;
+    private Long timestampEpochMs;
+    public String getSource() { return source; }
+    public void setSource(String value) { source = value; }
+    public Long getDurationSeconds() { return durationSeconds; }
+    public void setDurationSeconds(Long value) { durationSeconds = value; }
+    public Long getTimestampEpochMs() { return timestampEpochMs; }
+    public void setTimestampEpochMs(Long value) { timestampEpochMs = value; }
     public String getClientId() { return clientId; }
     public void setClientId(String value) { clientId=value; }
     public Long getId() { return id; }
